@@ -141,7 +141,7 @@ static int32_t lookup_value(const struct shell* sh, int32_t sensor_value, long l
     shell_print(sh, "Using LookUpTable");
     return LookUpTable::lookup(sensor_value);
   } break;
-    case 4: {
+  case 4: {
     shell_print(sh, "Using lookup_c_super_unsafe");
     return lookup_c_super_unsafe(sensor_value);
   } break;
