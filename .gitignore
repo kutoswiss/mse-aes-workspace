@@ -47,3 +47,6 @@ justfile.local
 
 # --- twister ---
 /twister*/
+
+# --- deps ---
+/deps/
