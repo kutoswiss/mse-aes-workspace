@@ -1,0 +1,13 @@
+menu "Zephyr"
+source "Kconfig.zephyr"
+endmenu
+
+module = APP
+module-str = APP
+source "subsys/logging/Kconfig.template.log_config"
+
+config BIKE_COMPUTER_STATIC_SCHEDULING
+	bool "Use static scheduling (phase A)"
+	default n
+	help
+	  Run the bike computer tasks with a static (cyclic) schedule.
