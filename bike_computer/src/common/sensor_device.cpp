@@ -32,13 +32,13 @@
 
 namespace bike_computer {
 
+#if !CONFIG_EMUL
+
 zpp_lib::ZephyrResult SensorDevice::initialize() {
   _sensor_device = DEVICE_DT_GET(DT_INST(0, bosch_bme280));
-
   if (!device_is_ready(_sensor_device)) {
     return zpp_lib::ZephyrResult(zpp_lib::ZephyrErrorCode::Busy);
   }
-
   return {};
 }
 
@@ -57,5 +57,23 @@ zpp_lib::ZephyrResult SensorDevice::read_humidity(float& humidity) {
   humidity = sensor_value_to_float(&s_humidity_sv);
   return {};
 }
+
+#else
+
+zpp_lib::ZephyrResult SensorDevice::initialize() {
+  return {};
+}
+
+zpp_lib::ZephyrResult SensorDevice::read_temperature(float& temperature) {
+  temperature = 4.7;
+  return {};
+}
+
+zpp_lib::ZephyrResult SensorDevice::read_humidity(float& humidity) {
+  humidity = 7.4;
+  return {};
+}
+
+#endif
 
 }  // namespace bike_computer
