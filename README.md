@@ -94,3 +94,52 @@ xpsr:  0x21000000
 
 Faulting instruction address (r15/pc): 0x000058cc
 ```
+
+## Phase B – BikeComputer Part I
+
+### Bike Computer Scheduling (Exercise 1)
+
+Task set (values in ms, D = T, Φ = 0):
+
+| Task        | T    | C   |
+|-------------|------|-----|
+| Speed       | 400  | 200 |
+| Gear        | 800  | 100 |
+| Reset       | 800  | 100 |
+| Temperature | 1600 | 100 |
+| Display     | 1600 | 300 |
+
+- Major cycle M = lcm(400, 800, 1600) = 1600 ms
+- Minor cycle m = gcd(400, 800, 1600) = 400 ms
+- M is a multiple of m, m <= Ti and m + (m - gcd(Ti, m)) <= Di for all tasks.
+- Display (300 ms) cannot share a minor cycle with Speed (200 ms), so it is split into
+  Display(1) = 200 ms and Display(2) = 100 ms.
+- U = 200/400 + 100/800 + 100/800 + 100/1600 + 300/1600 = 1
+
+Schedule over one major cycle:
+
+| Minor cycle | Time (ms)   | Tasks                     | Load (ms) |
+|-------------|-------------|---------------------------|-----------|
+| 1           | 0 - 400     | Gear, Speed, Reset        | 400       |
+| 2           | 400 - 800   | Display(1), Speed         | 400       |
+| 3           | 800 - 1200  | Gear, Speed, Temperature  | 400       |
+| 4           | 1200 - 1600 | Display(2), Speed, Reset  | 400       |
+
+```
+t (ms) 0    100       300  400        600       800  900       1100 1200 1300      1500 1600
+       |Gear| Speed   |Rst | Display(1) |  Speed  |Gear| Speed   |Temp|D(2)| Speed   |Rst |
+       |<------ m1 ------->|<-------- m2 -------->|<------ m3 ------->|<------ m4 ------->|
+```
+
+Release times and deadlines (each job starts in [k*T, (k+1)*T - C]):
+
+| Task        | Start times (ms)    | Allowed windows                           |
+|-------------|---------------------|-------------------------------------------|
+| Speed       | 100, 600, 900, 1300 | [0,200], [400,600], [800,1000], [1200,1400] |
+| Gear        | 0, 800              | [0,700], [800,1500]                       |
+| Reset       | 300, 1500           | [0,700], [800,1500]                       |
+| Temperature | 1100                | [0,1500]                                  |
+| Display(1)  | 400                 | [0,1400]                                  |
+| Display(2)  | 1200                | [0,1500]                                  |
+
+All constraints are met: the task set is schedulable with M = 1600 ms and m = 400 ms.

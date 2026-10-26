@@ -16,32 +16,32 @@
  * @file main.cpp
  * @author Serge Ayer <serge.ayer@hefr.ch>
  *
- * @brief Main function of the TemplateApplication program
+ * @brief Main function of the bike_computer program
  *
- * @date 2026-06-18
+ * @date 2025-07-01
  * @version 1.0.0
  ***************************************************************************/
 
-// zephyr
-
-// stl
-
 // zpp_lib
-#include "zpp_include/this_thread.hpp"
 #include "zpp_include/zpp_log.hpp"
 
-ZPP_LOG_MODULE_REGISTER(template_application, CONFIG_APP_LOG_LEVEL);
+// bike_computer
+#if CONFIG_BIKE_COMPUTER_STATIC_SCHEDULING
+#include "static_scheduling/bike_system.hpp"
+#endif  // CONFIG_BIKE_COMPUTER_STATIC_SCHEDULING
 
-// The complexity is increased by zephyr macros
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+ZPP_LOG_MODULE_REGISTER(bike_computer, CONFIG_APP_LOG_LEVEL);
+
 int main() {
-  ZPP_LOG_DBG("Running on board %s", CONFIG_BOARD_TARGET);
+#if CONFIG_BIKE_COMPUTER_STATIC_SCHEDULING
+  bike_computer::static_scheduling::BikeSystem bike_system;
+#endif  // CONFIG_BIKE_COMPUTER_STATIC_SCHEDULING
 
-  using std::literals::chrono_literals::operator""s;
-  static constexpr auto kSleepDuration = 1s;
-  while (true) {
-    ZPP_LOG_DBG("TemplateApplication is running...");
-    zpp_lib::ThisThread::sleep_for(kSleepDuration);
+  auto res = bike_system.start();
+  if (!res) {
+    ZPP_LOG_ERR("Cannot start bike system: %d", static_cast<int>(res.error()));
+    return -1;
   }
+
   return 0;
 }
