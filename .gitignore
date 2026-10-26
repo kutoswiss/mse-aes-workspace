@@ -50,3 +50,6 @@ justfile.local
 
 # --- deps ---
 /deps/
+.venv/
+.vscode/
+my_map.yaml
