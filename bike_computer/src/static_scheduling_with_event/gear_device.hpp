@@ -24,12 +24,16 @@
 
 #pragma once
 
+// std
+#include <atomic>
+
 // local
 #include "common/constants.hpp"
 
 // zpp_lib
 #include "zpp_include/interrupt_in.hpp"
 #include "zpp_include/non_copyable.hpp"
+#include "zpp_include/registration_token.hpp"
 
 namespace bike_computer::static_scheduling_with_event {
 
@@ -42,13 +46,19 @@ public:
   [[nodiscard]] uint8_t get_current_gear_size() const;
 
 private:
+  // called when button3 or button4 is pressed
+  void on_fall_button3();
+  void on_fall_button4();
+
   // data members
-  uint8_t _current_gear = bike_computer::kMinGear;
+  std::atomic<uint8_t> _current_gear{bike_computer::kMinGear};
 
   // buttons
   zpp_lib::InterruptIn _button2;
   zpp_lib::InterruptIn _button3;
   zpp_lib::InterruptIn _button4;
+  zpp_lib::RegistrationToken _button3_token;
+  zpp_lib::RegistrationToken _button4_token;
 };
 
 }  // namespace bike_computer::static_scheduling_with_event

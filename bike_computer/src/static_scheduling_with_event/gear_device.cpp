@@ -24,53 +24,39 @@
 
 #include "gear_device.hpp"
 
-// from common
-#include "common/task_manager.hpp"
-
-// zpp_lib
-#include "zpp_include/time.hpp"
-
 namespace bike_computer::static_scheduling_with_event {
 
 GearDevice::GearDevice()
-    : _button2(zpp_lib::InterruptIn::PinName::BUTTON2), _button3(zpp_lib::InterruptIn::PinName::BUTTON3),
-      _button4(zpp_lib::InterruptIn::PinName::BUTTON4) {}
+    : _button2(zpp_lib::InterruptIn::PinName::BUTTON2),
+      _button3(zpp_lib::InterruptIn::PinName::BUTTON3),
+      _button4(zpp_lib::InterruptIn::PinName::BUTTON4),
+      _button3_token(_button3.add_callback([this]() { on_fall_button3(); })),
+      _button4_token(_button4.add_callback([this]() { on_fall_button4(); })) {}
 
 uint8_t GearDevice::get_current_gear() {
-  std::chrono::microseconds initial_time = zpp_lib::Time::get_uptime();
-  std::chrono::microseconds elapsed_time = std::chrono::microseconds::zero();
-
-  // we bound the change to one decrement/increment per call
-  // we increment/decrement rotation speed when button3/button4 is pressed
-  // while button2 is pressed
-  bool has_changed = false;
-  while (elapsed_time < TaskManager::get_task_computation_time(TaskManager::TaskType::GearTaskType)) {
-    if (!has_changed) {
-      if (_button2.read() == zpp_lib::kPolarityPressed) {
-        if (_button3.read() == zpp_lib::kPolarityPressed) {
-          if (_current_gear > bike_computer::kMinGear) {
-            _current_gear--;
-          }
-          has_changed = true;
-        }
-
-        if (_button4.read() == zpp_lib::kPolarityPressed) {
-          if (_current_gear < bike_computer::kMaxGear) {
-            _current_gear++;
-          }
-          has_changed = true;
-        }
-      }
-    }
-    elapsed_time = zpp_lib::Time::get_uptime() - initial_time;
-  }
-  return _current_gear;
+  return _current_gear.load(std::memory_order_acquire);
 }
 
 uint8_t GearDevice::get_current_gear_size() const {
-  // simulate task computation by waiting for the required task run time
-  // wait_us(kTaskRunTime.count());
-  return bike_computer::kMaxGearSize - _current_gear;
+  return bike_computer::kMaxGearSize - _current_gear.load(std::memory_order_acquire);
+}
+
+void GearDevice::on_fall_button3() {
+  if (_button2.read() == zpp_lib::kPolarityPressed) {
+    uint8_t gear = _current_gear.load(std::memory_order_relaxed);
+    if (gear > bike_computer::kMinGear) {
+      _current_gear.store(gear - 1, std::memory_order_release);
+    }
+  }
+}
+
+void GearDevice::on_fall_button4() {
+  if (_button2.read() == zpp_lib::kPolarityPressed) {
+    uint8_t gear = _current_gear.load(std::memory_order_relaxed);
+    if (gear < bike_computer::kMaxGear) {
+      _current_gear.store(gear + 1, std::memory_order_release);
+    }
+  }
 }
 
 }  // namespace bike_computer::static_scheduling_with_event
