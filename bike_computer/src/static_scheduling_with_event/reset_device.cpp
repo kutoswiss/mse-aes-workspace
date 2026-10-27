@@ -33,7 +33,7 @@ ResetDevice::ResetDevice()
     : _button1(zpp_lib::InterruptIn::PinName::BUTTON1), _button1_token(_button1.add_callback([this]() { on_fall_button1(); })) {}
 
 bool ResetDevice::check_reset() {
-  return _button1.read() == zpp_lib::kPolarityPressed;
+  return _reset.exchange(false, std::memory_order_acq_rel);
 }
 
 std::chrono::microseconds ResetDevice::get_press_time() {
@@ -42,6 +42,7 @@ std::chrono::microseconds ResetDevice::get_press_time() {
 
 void ResetDevice::on_fall_button1() {
   _press_time = zpp_lib::Time::get_uptime();
+  _reset.store(true, std::memory_order_release);
 }
 
 }  // namespace bike_computer::static_scheduling_with_event
