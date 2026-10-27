@@ -16,7 +16,7 @@
  * @file pedal_device.cpp
  * @author Serge Ayer <serge.ayer@hefr.ch>
  *
- * @brief PedalDevice implementation (static scheduling)
+ * @brief PedalDevice implementation (static scheduling with event)
  *
  * @date 2025-07-01
  * @version 1.0.0

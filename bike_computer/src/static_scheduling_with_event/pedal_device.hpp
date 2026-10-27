@@ -16,7 +16,7 @@
  * @file pedal_device.hpp
  * @author Serge Ayer <serge.ayer@hefr.ch>
  *
- * @brief PedalDevice header file (static scheduling)
+ * @brief PedalDevice header file (static scheduling with event)
  *
  * @date 2025-07-01
  * @version 1.0.0

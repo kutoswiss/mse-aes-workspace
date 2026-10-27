@@ -16,7 +16,7 @@
  * @file bike_system.cpp
  * @author Serge Ayer <serge.ayer@hefr.ch>
  *
- * @brief Bike System implementation (static scheduling)
+ * @brief Bike System implementation (static scheduling with event)
  *
  * @date 2025-07-01
  * @version 1.0.0
@@ -80,6 +80,15 @@ zpp_lib::ZephyrResult BikeSystem::start() {
       return res;
     }
   }
+
+#if CONFIG_CPU_LOAD
+  // log the CPU load once per major cycle, at the end of the last minor cycle
+  res = _ttce.add_task(kNbrOfMinorCycles - 1, []() { zpp_lib::Utils::log_cpu_load(); });
+  if (!res) {
+    ZPP_LOG_ERR("Cannot add CPU load task: %d", static_cast<int>(res.error()));
+    return res;
+  }
+#endif  // CONFIG_CPU_LOAD
 
   // initialize the task manager phase just before the first minor cycle
   _ttce.add_initial_task([this]() { this->_task_manager.initialize_phase(); });

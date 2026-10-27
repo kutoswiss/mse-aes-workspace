@@ -203,3 +203,24 @@ To be sure to be detected, the button must be pressed longer than the time betwe
 
 This is the limitation addressed in Part II, where the button press is handled asynchronously
 (event-driven).
+
+## Phase B – BikeComputer Part II
+
+### Question 1 – CPU usage with the TTCE
+
+With the CPU load measured as an additional TTCE task (once per major cycle):
+
+```
+CPU Load: 63.005%   (first measurement, includes start-up)
+CPU Load: 99.007%
+CPU Load: 99.007%
+CPU Load: 99.006%
+```
+
+The CPU usage is about 99 %. The tasks simulate their computation time with a busy wait
+(`kAllowSleep = false`: `TaskManager::simulate_computation_time()` loops on `get_uptime()` until the
+computation time has elapsed). Since the sum of the computation times over a major cycle is
+1600 ms = M (U = 1), every minor cycle of 400 ms is completely filled by tasks that keep the CPU busy,
+and the idle thread almost never runs. The remaining ~1 % corresponds to the short gaps between the
+end of the tasks of a minor cycle and the next TTCE timer tick. The first value (63 %) is lower because
+the measurement interval includes the start-up phase, when the CPU is partly idle.

@@ -16,7 +16,7 @@
  * @file gear_device.cpp
  * @author Serge Ayer <serge.ayer@hefr.ch>
  *
- * @brief GearDevice implementation (static scheduling)
+ * @brief GearDevice implementation (static scheduling with event)
  *
  * @date 2025-07-01
  * @version 1.0.0

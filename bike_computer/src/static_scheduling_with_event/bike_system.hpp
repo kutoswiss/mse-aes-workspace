@@ -16,7 +16,7 @@
  * @file bike_system.hpp
  * @author Serge Ayer <serge.ayer@hefr.ch>
  *
- * @brief Bike System header file (static scheduling)
+ * @brief Bike System header file (static scheduling with event)
  *
  * @date 2025-07-01
  * @version 1.0.0
@@ -103,9 +103,14 @@ private:
   TaskManager _task_manager;
 
   // TTCE related definitions
-  using VoidFunction                                     = std::function<void()>;
-  static constexpr uint16_t kNbrOfMinorCycles            = 4;
-  static constexpr uint16_t kMaxNbrOfTasksInMinorCycles  = 3;
+  using VoidFunction                          = std::function<void()>;
+  static constexpr uint16_t kNbrOfMinorCycles = 4;
+#if CONFIG_CPU_LOAD
+  // one additional task for logging the CPU load
+  static constexpr uint16_t kMaxNbrOfTasksInMinorCycles = 4;
+#else
+  static constexpr uint16_t kMaxNbrOfTasksInMinorCycles = 3;
+#endif  // CONFIG_CPU_LOAD
   static constexpr std::chrono::milliseconds kMinorCycle = 400ms;
   TTCE<VoidFunction, kNbrOfMinorCycles, kMaxNbrOfTasksInMinorCycles> _ttce{kMinorCycle};
 };

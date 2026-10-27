@@ -16,7 +16,7 @@
  * @file reset_device.cpp
  * @author Serge Ayer <serge.ayer@hefr.ch>
  *
- * @brief ResetDevice implementation (static scheduling)
+ * @brief ResetDevice implementation (static scheduling with event)
  *
  * @date 2025-07-01
  * @version 1.0.0
