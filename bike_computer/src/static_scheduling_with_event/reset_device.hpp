@@ -25,6 +25,7 @@
 #pragma once
 
 // std
+#include <atomic>
 #include <chrono>
 
 // zpp_lib
@@ -53,6 +54,7 @@ private:
   zpp_lib::InterruptIn _button1;
   zpp_lib::RegistrationToken _button1_token;
   std::chrono::microseconds _press_time{std::chrono::microseconds::zero()};
+  std::atomic<bool> _reset{false};
 };
 
 }  // namespace bike_computer::static_scheduling_with_event
