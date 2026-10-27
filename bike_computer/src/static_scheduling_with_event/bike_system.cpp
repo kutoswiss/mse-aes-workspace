@@ -25,7 +25,9 @@
 #include "bike_system.hpp"
 
 // std
+#include <array>
 #include <chrono>
+#include <utility>
 
 // zephyr
 
@@ -46,7 +48,7 @@ BikeSystem::~BikeSystem() = default;
 // The complexity is increased by zephyr macros
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 zpp_lib::ZephyrResult BikeSystem::start() {
-  ZPP_LOG_INF("Starting Super-Loop without event handling");
+  ZPP_LOG_INF("Starting Time-Triggered Cyclic Executive");
 
   zpp_lib::Utils::log_threads_summary();
 
@@ -56,53 +58,41 @@ zpp_lib::ZephyrResult BikeSystem::start() {
     return res;
   }
 
-  ZPP_LOG_DBG("Starting super-loop");
-
-  // initialize the task manager phase
-  _task_manager.initialize_phase();
-
-  while (true) {
-#if CONFIG_APP_LOG_LEVEL_DBG
-    auto start_time = zpp_lib::Time::get_uptime();
-#endif  // CONFIG_APP_LOG_LEVEL_DBG
-
-    // minor cycle 1 (0 - 400 ms)
-    gear_task();
-    speed_distance_task();
-    reset_task();
-    // minor cycle 2 (400 - 800 ms)
-    display_task1();
-    speed_distance_task();
-    // minor cycle 3 (800 - 1200 ms)
-    gear_task();
-    speed_distance_task();
-    temperature_task();
-    // minor cycle 4 (1200 - 1600 ms)
-    display_task2();
-    speed_distance_task();
-    reset_task();
-
-    // register the time at the end of the cyclic schedule period and print the
-    // elapsed time for the period
-#if CONFIG_APP_LOG_LEVEL_DBG
-    std::chrono::microseconds end_time = zpp_lib::Time::get_uptime();
-    auto cycle                         = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
-    ZPP_LOG_DBG("Repeating cycle time is %" PRIu64 " milliseconds", cycle.count());
-#endif  // CONFIG_APP_LOG_LEVEL_DBG
-
-    if (_stop_flag.load()) {
-      break;
+  // schedule table: minor cycle = 400 ms, major cycle = 1600 ms
+  static constexpr size_t kNbrOfScheduledTasks                                       = 11;
+  const std::array<std::pair<uint16_t, VoidFunction>, kNbrOfScheduledTasks> schedule = {{
+      {0, [this]() { this->gear_task(); }},
+      {0, [this]() { this->speed_distance_task(); }},
+      {0, [this]() { this->reset_task(); }},
+      {1, [this]() { this->display_task1(); }},
+      {1, [this]() { this->speed_distance_task(); }},
+      {2, [this]() { this->gear_task(); }},
+      {2, [this]() { this->speed_distance_task(); }},
+      {2, [this]() { this->temperature_task(); }},
+      {3, [this]() { this->display_task2(); }},
+      {3, [this]() { this->speed_distance_task(); }},
+      {3, [this]() { this->reset_task(); }},
+  }};
+  for (const auto& [minor_cycle_index, task] : schedule) {
+    res = _ttce.add_task(minor_cycle_index, task);
+    if (!res) {
+      ZPP_LOG_ERR("Cannot add task to minor cycle %d: %d", minor_cycle_index, static_cast<int>(res.error()));
+      return res;
     }
-
-#ifdef CONFIG_CPU_LOAD
-    zpp_lib::Utils::log_cpu_load();
-#endif
   }
+
+  // initialize the task manager phase just before the first minor cycle
+  _ttce.add_initial_task([this]() { this->_task_manager.initialize_phase(); });
+
+  ZPP_LOG_DBG("Starting TTCE");
+  // the call blocks until stop() is called from another thread
+  _ttce.start();
+
   return res;
 }
 
 void BikeSystem::stop() {
-  _stop_flag.store(true);
+  _ttce.stop();
 }
 
 zpp_lib::ZephyrResult BikeSystem::initialize() {

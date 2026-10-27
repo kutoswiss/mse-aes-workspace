@@ -25,7 +25,8 @@
 #pragma once
 
 // stl
-#include <atomic>
+#include <chrono>
+#include <functional>
 
 // local
 #include "gear_device.hpp"
@@ -40,6 +41,7 @@
 #include "common/sensor_device.hpp"
 #include "common/speedometer.hpp"
 #include "common/task_manager.hpp"
+#include "common/ttce.hpp"
 
 namespace bike_computer::static_scheduling_with_event {
 
@@ -78,8 +80,6 @@ private:
 
   // flag stating whether sleep is allowed when simulating computation times
   static constexpr bool kAllowSleep = false;
-  // stop flag, used for stopping the super-loop (set in stop())
-  volatile std::atomic<bool> _stop_flag = false;
   // data member that represents the device for manipulating the gear
   GearDevice _gear_device;
   uint8_t _current_gear      = bike_computer::kMinGear;
@@ -101,6 +101,13 @@ private:
 
   // used for managing tasks info
   TaskManager _task_manager;
+
+  // TTCE related definitions
+  using VoidFunction                                     = std::function<void()>;
+  static constexpr uint16_t kNbrOfMinorCycles            = 4;
+  static constexpr uint16_t kMaxNbrOfTasksInMinorCycles  = 3;
+  static constexpr std::chrono::milliseconds kMinorCycle = 400ms;
+  TTCE<VoidFunction, kNbrOfMinorCycles, kMaxNbrOfTasksInMinorCycles> _ttce{kMinorCycle};
 };
 
 }  // namespace bike_computer::static_scheduling_with_event
