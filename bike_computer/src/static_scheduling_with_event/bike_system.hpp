@@ -79,7 +79,7 @@ private:
   void display_task2();
 
   // flag stating whether sleep is allowed when simulating computation times
-  static constexpr bool kAllowSleep = false;
+  static constexpr bool kAllowSleep = true;
   // data member that represents the device for manipulating the gear
   GearDevice _gear_device;
   uint8_t _current_gear      = bike_computer::kMinGear;

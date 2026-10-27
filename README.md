@@ -224,3 +224,25 @@ computation time has elapsed). Since the sum of the computation times over a maj
 and the idle thread almost never runs. The remaining ~1 % corresponds to the short gaps between the
 end of the tasks of a minor cycle and the next TTCE timer tick. The first value (63 %) is lower because
 the measurement interval includes the start-up phase, when the CPU is partly idle.
+
+### Question 2 – CPU usage with sleep calls
+
+With `kAllowSleep = true` in `static_scheduling_with_event::BikeSystem`:
+
+```
+CPU Load: 72.002%
+CPU Load: 72.002%
+CPU Load: 71.009%
+```
+
+The CPU usage drops from about 99 % to about 72 %. `TaskManager::simulate_computation_time()` now
+puts the calling thread to sleep (`zpp_lib::ThisThread::sleep_for()`) for the remaining computation
+time (minus `kAllowedDelta`) instead of busy-waiting, so the idle thread can run during that time.
+
+The CPU usage does not drop further because the gear and speed tasks still poll the buttons
+during their whole computation time: `GearDevice::get_current_gear()` and
+`PedalDevice::get_current_rotation_time()` loop until the task computation time has elapsed, so
+there is nothing left to sleep when `simulate_computation_time()` is called. This represents
+2 x 100 ms (gear) + 4 x 200 ms (speed) = 1000 ms of busy waiting per major cycle of 1600 ms (62.5 %).
+The remaining ~10 % is the actual work done by the other tasks (display update over SPI, sensor
+reading), the short busy waits that complete each sleep and the CPU load logging task itself.
