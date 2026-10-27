@@ -28,4 +28,6 @@ applications:
       configs:
         - gpio+display+sensor+phase_a
         - log+debug+gpio+display+sensor+phase_a
+        - gpio+display+sensor+phase_b
+        - log+debug+gpio+display+sensor+phase_b
       configs_dir: ../deps/zpp_lib/configs
