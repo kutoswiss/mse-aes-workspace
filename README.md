@@ -246,3 +246,16 @@ there is nothing left to sleep when `simulate_computation_time()` is called. Thi
 2 x 100 ms (gear) + 4 x 200 ms (speed) = 1000 ms of busy waiting per major cycle of 1600 ms (62.5 %).
 The remaining ~10 % is the actual work done by the other tasks (display update over SPI, sensor
 reading), the short busy waits that complete each sleep and the CPU load logging task itself.
+
+### Durée du test `bike_system_part2` (TTCE)
+
+| Plateforme | Échec mesuré | `CONFIG_TEST_DURATION_IN_MS` |
+|---|---|---|
+| nrf5340dk/nrf5340/cpuapp | 22,3 s (Task Reset, call #27) | 20000 |
+| qemu_x86 | built only (Windows) | 120000 |
+
+La durée avant échec est la même qu'avec la Super-Loop. Le `sleep_for` réduit la charge CPU,
+mais chaque tâche dure toujours C. Avec U = 1 et l'overhead de chaque tâche, un minor cycle dépasse 400 ms :
+quand le timer expire, le travail est encore en cours (`k_work_submit` retourne 2) et il est
+relancé juste après. Les minor cycles s'enchaînent donc sans attendre le timer, et le retard
+s'accumule comme dans la Super-Loop.
