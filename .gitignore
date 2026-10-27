@@ -53,3 +53,5 @@ justfile.local
 .venv/
 .vscode/
 my_map.yaml
+
+build_clang/
