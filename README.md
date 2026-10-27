@@ -285,3 +285,37 @@ now simulated with `sleep_for`, during which the idle thread runs.
 
 The remaining 17 % is the actual work: display update over SPI, sensor reading and UART logging. The
 20 % peaks come from the position of the measurement window relative to the display tasks.
+
+### Question 4 – Response time of the reset event with interrupts
+
+Measured response times (short presses on BUTTON 1):
+
+```
+Reset task: response time is 585937 usecs
+Reset task: response time is 34698 usecs
+Reset task: response time is 175109 usecs
+Reset task: response time is 595124 usecs
+Reset task: response time is 350098 usecs
+Reset task: response time is 307740 usecs
+Reset task: response time is 389710 usecs
+Reset task: response time is 992951 usecs
+Reset task: response time is 237641 usecs
+Reset task: response time is 708466 usecs
+Reset task: response time is 118560 usecs
+Reset task: response time is 503418 usecs
+```
+
+**No event is missed and each press triggers exactly one reset.** The ISR `on_fall_button1()`
+records the press time and sets an `std::atomic<bool>` flag (`store(true, memory_order_release)`).
+`check_reset()` reads and clears the flag in one atomic operation
+(`exchange(false, memory_order_acq_rel)`). The event is stored until `reset_task()` runs, so even a
+very short press is detected, and holding the button no longer causes a second reset.
+
+**The response time is still variable (35 ms to 993 ms).** The event is only handled when
+`reset_task()` runs, at t = 300 ms and t = 1500 ms in the major cycle, so the response time still
+depends on when the button is pressed within the cycle and is bounded by the gap between two
+executions of the Reset task (up to 1200 ms), as with `static_scheduling::BikeSystem`.
+
+This is an improvement over `static_scheduling::BikeSystem` for reliability (no lost events,
+no double resets), but not for latency: the ISR only stores the event, and its processing is still
+bound to the static schedule. Reducing the response
