@@ -9,5 +9,6 @@ project(
 )
 
 FILE(GLOB app_sources src/*.cpp src/common/*.cpp src/common/resources/*.cpp src/static_scheduling/*.cpp)
+FILE(GLOB app_sources src/*.cpp src/common/*.cpp src/common/resources/*.cpp src/static_scheduling/*.cpp src/static_scheduling_with_event/*.cpp)
 target_sources(app PRIVATE ${app_sources})
 target_include_directories(app PRIVATE src/)

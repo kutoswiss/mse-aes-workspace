@@ -28,6 +28,8 @@
 // bike_computer
 #if CONFIG_BIKE_COMPUTER_STATIC_SCHEDULING
 #include "static_scheduling/bike_system.hpp"
+#elif CONFIG_BIKE_COMPUTER_STATIC_SCHEDULING_WITH_EVENT
+#include "static_scheduling_with_event/bike_system.hpp"
 #endif  // CONFIG_BIKE_COMPUTER_STATIC_SCHEDULING
 
 ZPP_LOG_MODULE_REGISTER(bike_computer, CONFIG_APP_LOG_LEVEL);
@@ -35,6 +37,8 @@ ZPP_LOG_MODULE_REGISTER(bike_computer, CONFIG_APP_LOG_LEVEL);
 int main() {
 #if CONFIG_BIKE_COMPUTER_STATIC_SCHEDULING
   bike_computer::static_scheduling::BikeSystem bike_system;
+#elif CONFIG_BIKE_COMPUTER_STATIC_SCHEDULING_WITH_EVENT
+  bike_computer::static_scheduling_with_event::BikeSystem bike_system;
 #endif  // CONFIG_BIKE_COMPUTER_STATIC_SCHEDULING
 
   auto res = bike_system.start();

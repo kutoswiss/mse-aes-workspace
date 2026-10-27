@@ -1,0 +1,58 @@
+// Copyright 2025 Haute école d'ingénierie et d'architecture de Fribourg
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/****************************************************************************
+ * @file reset_device.hpp
+ * @author Serge Ayer <serge.ayer@hefr.ch>
+ *
+ * @brief ResetDevice header file (static scheduling)
+ *
+ * @date 2025-07-01
+ * @version 1.0.0
+ ***************************************************************************/
+
+#pragma once
+
+// std
+#include <chrono>
+
+// zpp_lib
+#include "zpp_include/interrupt_in.hpp"
+#include "zpp_include/non_copyable.hpp"
+#include "zpp_include/registration_token.hpp"
+
+namespace bike_computer::static_scheduling_with_event {
+
+class ResetDevice : private zpp_lib::NonCopyable {
+public:
+  // constructor and destructor
+  ResetDevice();
+
+  // method called for checking the reset status
+  bool check_reset();
+
+  // for computing the response time
+  std::chrono::microseconds get_press_time();
+
+private:
+  // called when one of the buttons is pressed
+  void on_fall_button1();
+
+  // data members
+  zpp_lib::InterruptIn _button1;
+  zpp_lib::RegistrationToken _button1_token;
+  std::chrono::microseconds _press_time{std::chrono::microseconds::zero()};
+};
+
+}  // namespace bike_computer::static_scheduling_with_event
