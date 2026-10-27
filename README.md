@@ -247,15 +247,41 @@ there is nothing left to sleep when `simulate_computation_time()` is called. Thi
 The remaining ~10 % is the actual work done by the other tasks (display update over SPI, sensor
 reading), the short busy waits that complete each sleep and the CPU load logging task itself.
 
-### Durée du test `bike_system_part2` (TTCE)
+### Bike system test duration (TTCE)
 
-| Plateforme | Échec mesuré | `CONFIG_TEST_DURATION_IN_MS` |
+| Version | Failure on nrf5340dk | `CONFIG_TEST_DURATION_IN_MS` |
 |---|---|---|
-| nrf5340dk/nrf5340/cpuapp | 22,3 s (Task Reset, call #27) | 20000 |
-| qemu_x86 | built only (Windows) | 120000 |
+| TTCE + `sleep_for` (buttons still polled) | 22.3 s (Task Reset, call #27) | 20000 |
+| TTCE + event-driven devices (ISR + `std::atomic`) | 50.2 s (Task Speed, call #125) | 45000 |
 
-La durée avant échec est la même qu'avec la Super-Loop. Le `sleep_for` réduit la charge CPU,
-mais chaque tâche dure toujours C. Avec U = 1 et l'overhead de chaque tâche, un minor cycle dépasse 400 ms :
-quand le timer expire, le travail est encore en cours (`k_work_submit` retourne 2) et il est
-relancé juste après. Les minor cycles s'enchaînent donc sans attendre le timer, et le retard
-s'accumule comme dans la Super-Loop.
+On qemu_x86 the test is only built (Windows host), 120000 ms is kept.
+
+With `sleep_for` only, the duration before failure is the same as with the Super-Loop. Sleeping
+reduces the CPU load, but each task still lasts C. With U = 1 and the overhead of each task, a minor
+cycle lasts slightly more than 400 ms: when the TTCE timer expires, the work item is still running
+(`k_work_submit` returns 2) and it is executed again right after. The minor cycles are then chained
+without waiting for the timer, and the delay accumulates as in the Super-Loop.
+
+With the event-driven devices, `GearDevice` and `PedalDevice` no longer run a polling loop during
+their computation time, so the overhead of each task is smaller and the delay accumulates more slowly.
+The delay still exceeds `kAllowedDelta` because U = 1, but about twice later.
+
+### Question 3 – CPU usage with the event-driven implementation
+
+```
+CPU Load: 17.002%
+CPU Load: 17.005%
+CPU Load: 20.007%
+CPU Load: 17.003%
+```
+
+The CPU usage drops from about 72 % to about 17 % (20 % every third measurement). The buttons are
+no longer polled: `GearDevice`, `PedalDevice` and `ResetDevice` register callbacks with
+`InterruptIn::add_callback()` (the `RegistrationToken` is kept as a data member). The callbacks run in
+ISR context and update `std::atomic` data members (lock-free on the Cortex-M33), with a
+`store(memory_order_release)` in the ISR and a `load(memory_order_acquire)` in the task. The
+1000 ms of busy waiting per major cycle are removed, and the whole computation time of each task is
+now simulated with `sleep_for`, during which the idle thread runs.
+
+The remaining 17 % is the actual work: display update over SPI, sensor reading and UART logging. The
+20 % peaks come from the position of the measurement window relative to the display tasks.
