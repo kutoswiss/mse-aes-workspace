@@ -24,12 +24,17 @@
 
 #pragma once
 
+// std
+#include <atomic>
+#include <chrono>
+
 // local
 #include "common/constants.hpp"
 
 // zpp_lib
 #include "zpp_include/interrupt_in.hpp"
 #include "zpp_include/non_copyable.hpp"
+#include "zpp_include/registration_token.hpp"
 
 namespace bike_computer::static_scheduling_with_event {
 
@@ -41,17 +46,23 @@ public:
   std::chrono::milliseconds get_current_rotation_time();
 
 private:
+  // called when button3 or button4 is pressed
+  void on_fall_button3();
+  void on_fall_button4();
+
   // private methods
   void increase_rotation_speed();
   void decrease_rotation_speed();
 
   // data members
-  std::chrono::milliseconds _pedal_rotation_time = bike_computer::kInitialPedalRotationTime;
+  std::atomic<uint32_t> _pedal_rotation_time_ms{static_cast<uint32_t>(bike_computer::kInitialPedalRotationTime.count())};
 
   // buttons
   zpp_lib::InterruptIn _button2;
   zpp_lib::InterruptIn _button3;
   zpp_lib::InterruptIn _button4;
+  zpp_lib::RegistrationToken _button3_token;
+  zpp_lib::RegistrationToken _button4_token;
 };
 
 }  // namespace bike_computer::static_scheduling_with_event

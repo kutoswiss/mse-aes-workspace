@@ -24,54 +24,44 @@
 
 #include "pedal_device.hpp"
 
-// from common
-#include "common/task_manager.hpp"
-
-// zpp_lib
-#include "zpp_include/time.hpp"
-
 namespace bike_computer::static_scheduling_with_event {
 
 PedalDevice::PedalDevice()
-    : _button2(zpp_lib::InterruptIn::PinName::BUTTON2), _button3(zpp_lib::InterruptIn::PinName::BUTTON3),
-      _button4(zpp_lib::InterruptIn::PinName::BUTTON4) {}
+    : _button2(zpp_lib::InterruptIn::PinName::BUTTON2),
+      _button3(zpp_lib::InterruptIn::PinName::BUTTON3),
+      _button4(zpp_lib::InterruptIn::PinName::BUTTON4),
+      _button3_token(_button3.add_callback([this]() { on_fall_button3(); })),
+      _button4_token(_button4.add_callback([this]() { on_fall_button4(); })) {}
 
 std::chrono::milliseconds PedalDevice::get_current_rotation_time() {
-  std::chrono::microseconds initial_time = zpp_lib::Time::get_uptime();
-  std::chrono::microseconds elapsed_time = std::chrono::microseconds::zero();
+  return std::chrono::milliseconds(_pedal_rotation_time_ms.load(std::memory_order_acquire));
+}
 
-  // we bound the change to one decrement/increment per call
-  // we decrement/increment rotation speed when button3/button4 is pressed
-  // while button2 is not pressed
-  bool has_changed = false;
-  while (elapsed_time < TaskManager::get_task_computation_time(TaskManager::TaskType::SpeedTaskType)) {
-    if (!has_changed) {
-      if (_button2.read() != zpp_lib::kPolarityPressed) {
-        if (_button3.read() == zpp_lib::kPolarityPressed) {
-          decrease_rotation_speed();
-          has_changed = true;
-        }
-
-        if (_button4.read() == zpp_lib::kPolarityPressed) {
-          increase_rotation_speed();
-          has_changed = true;
-        }
-      }
-    }
-    elapsed_time = zpp_lib::Time::get_uptime() - initial_time;
+void PedalDevice::on_fall_button3() {
+  if (_button2.read() != zpp_lib::kPolarityPressed) {
+    decrease_rotation_speed();
   }
-  return _pedal_rotation_time;
+}
+
+void PedalDevice::on_fall_button4() {
+  if (_button2.read() != zpp_lib::kPolarityPressed) {
+    increase_rotation_speed();
+  }
 }
 
 void PedalDevice::increase_rotation_speed() {
-  if (_pedal_rotation_time > bike_computer::kMinPedalRotationTime) {
-    _pedal_rotation_time -= bike_computer::kDeltaPedalRotationTime;
+  uint32_t time_ms = _pedal_rotation_time_ms.load(std::memory_order_relaxed);
+  if (time_ms > static_cast<uint32_t>(bike_computer::kMinPedalRotationTime.count())) {
+    _pedal_rotation_time_ms.store(time_ms - static_cast<uint32_t>(bike_computer::kDeltaPedalRotationTime.count()),
+                                  std::memory_order_release);
   }
 }
 
 void PedalDevice::decrease_rotation_speed() {
-  if (_pedal_rotation_time < bike_computer::kMaxPedalRotationTime) {
-    _pedal_rotation_time += bike_computer::kDeltaPedalRotationTime;
+  uint32_t time_ms = _pedal_rotation_time_ms.load(std::memory_order_relaxed);
+  if (time_ms < static_cast<uint32_t>(bike_computer::kMaxPedalRotationTime.count())) {
+    _pedal_rotation_time_ms.store(time_ms + static_cast<uint32_t>(bike_computer::kDeltaPedalRotationTime.count()),
+                                  std::memory_order_release);
   }
 }
 
