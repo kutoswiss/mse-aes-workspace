@@ -115,6 +115,9 @@ ZPP_ZTEST(ptr_test, test_unique_ptr) {
     zpp_zassert_equal(Test::kMagicNumber, unique_ptr_src->_value);
 
     std::unique_ptr<Test> unique_ptr_dst = std::move(unique_ptr_src);
+    // ownership has been transferred: the source no longer owns the instance
+    zpp_zassert_true(unique_ptr_src == nullptr);
+    zpp_zassert_true(unique_ptr_dst != nullptr);
     zpp_zassert_equal(1, Test::s_instance_count);
     zpp_zassert_equal(Test::kMagicNumber, unique_ptr_dst->_value);
   }
