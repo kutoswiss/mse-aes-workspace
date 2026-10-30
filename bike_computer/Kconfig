@@ -11,3 +11,16 @@ config BIKE_COMPUTER_STATIC_SCHEDULING
   default n
   help
     This option must be enabled to use the static scheduling version.
+
+config LOG_TASK_TIMES
+  bool "Log task times for debugging purposes"
+  default n
+  help
+    This option must be enabled to log task times with the TaskManager class
+    This option must be disabled for test and production
+
+config APP_LOG_LEVEL_DEBUG
+  bool "Log for debugging purposes"
+  default n
+  help
+    This option must be disabled for test and production

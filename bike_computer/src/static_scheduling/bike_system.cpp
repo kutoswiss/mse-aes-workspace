@@ -71,12 +71,28 @@ zpp_lib::ZephyrResult BikeSystem::start() {
     auto start_time = zpp_lib::Time::get_uptime();
 #endif  // CONFIG_APP_LOG_LEVEL_DEBUG
 
-    // TODO(Student): implement calls to different tasks based on computed schedule
+    // Major Cycle = 1600ms
+    // Minor Cycle = 200ms
+    // Speed:     C=200ms, T=400ms
+    // Gear:      C=100ms, T=800ms
+    // Temp:      C=100ms, T=1600ms
+    // Reset:     C=100ms, T=800ms
+    // Display 1: C=200ms, T=1600ms
+    // Display 2: C=100ms, T=1600ms
+
     speed_distance_task();
     gear_task();
     reset_task();
-    temperature_task();
+
+    speed_distance_task();
     display_task1();
+
+    speed_distance_task();
+    gear_task();
+    reset_task();
+
+    speed_distance_task();
+    temperature_task();
     display_task2();
 
     // register the time at the end of the cyclic schedule period and print the
