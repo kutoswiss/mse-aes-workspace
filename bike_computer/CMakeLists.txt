@@ -17,6 +17,11 @@ target_sources(
     src/common/speedometer.cpp
     src/common/task_manager.cpp
     src/static_scheduling/gear_device.cpp
+    src/static_scheduling/pedal_device.cpp
+    src/static_scheduling/reset_device.cpp
+    src/static_scheduling/bike_system.cpp
+    src/common/resources/fonts_DejaVuSans_16.cpp
+    src/common/resources/fonts_DejaVuSans_18.cpp
 )
 
 target_include_directories(
