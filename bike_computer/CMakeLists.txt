@@ -12,4 +12,16 @@ target_sources(
     app
     PRIVATE
     src/main.cpp
+    src/common/bike_display.cpp
+    src/common/sensor_device.cpp
+    src/common/speedometer.cpp
+    src/common/task_manager.cpp
+    src/static_scheduling/gear_device.cpp
+)
+
+target_include_directories(
+    app
+    PRIVATE
+    src
+    src/common
 )
