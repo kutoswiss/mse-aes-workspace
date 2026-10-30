@@ -10,6 +10,9 @@ This repository contains the complete workspace for the course Advanced Embedded
 
 ## Project Phases
 
+- [Phase A: GitHub Infrastructure, Software Quality and Tests](#phase-a-github-infrastructure-software-quality-and-tests)
+- [Phase B: Bike Computer Part 1 and 2](#phase-b-bike-computer-part-1-and-2)
+
 ### Phase A: GitHub Infrastructure, Software Quality and Tests
 This phase contains the following delivrables:
 - Deliverables/Requirements of the Getting Started codelab.
@@ -95,7 +98,7 @@ xpsr:  0x21000000
 Faulting instruction address (r15/pc): 0x000058cc
 ```
 
-### Phase B: GitHub Infrastructure, Software Quality and Tests
+### Phase B: Bike Computer Part 1 and 2
 TBD
 
 ### Task scheduler diagram
