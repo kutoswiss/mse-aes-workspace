@@ -94,3 +94,28 @@ xpsr:  0x21000000
 
 Faulting instruction address (r15/pc): 0x000058cc
 ```
+
+### Phase B: GitHub Infrastructure, Software Quality and Tests
+TBD
+
+### Task scheduler diagram
+![Bike Computer Static Scheduler](assets/images/bike_computer_static_scheduler_no_transparent.png "Bike Computer Static Scheduler")
+
+### Questions
+#### Question 1: Response time of the reset event
+
+*There is a large variation in the response time values, from a few milliseconds to hundreds of milliseconds.*
+
+The large variation in response time comes from the cyclic scheduler system. The reset button is not handled when it is pressed, but only when the scheduler runs the reset task, which polls the button during its execution. The response time therefore depends on when the button is pressed relative to the reset task.
+
+The reset task runs exactly twice per major cycle of 1600 ms:
+
+Worst case: the button is pressed just after the reset task has finished, at about 400 ms. It is only detected at the next execution of the reset task, after Speed → Temperature → Display 1 → Speed → Gear → Reset, at about 1100 ms. The response time is then about 700 ms.
+
+Best case: the button is pressed just before or while the reset task is running, for example during the gear task (Gear → Reset) or during the reset task itself. The press is then detected almost immediately, which gives a response time of only a few milliseconds.
+
+
+*If you do not press long enough on the push button, the event may be missed and no reset happens.*
+
+Because of the cyclic scheduler system, if we press the reset button and release it before the reset task gets executed, the reset task might miss the pressed button state. Which is why it is needed to press the button a certain amount of time before it gets handled.
+
