@@ -8,25 +8,7 @@ project(
     LANGUAGES C CXX
 )
 
-target_sources(
-    app
-    PRIVATE
-    src/main.cpp
-    src/common/bike_display.cpp
-    src/common/sensor_device.cpp
-    src/common/speedometer.cpp
-    src/common/task_manager.cpp
-    src/static_scheduling/gear_device.cpp
-    src/static_scheduling/pedal_device.cpp
-    src/static_scheduling/reset_device.cpp
-    src/static_scheduling/bike_system.cpp
-    src/common/resources/fonts_DejaVuSans_16.cpp
-    src/common/resources/fonts_DejaVuSans_18.cpp
-)
-
-target_include_directories(
-    app
-    PRIVATE
-    src
-    src/common
-)
+FILE(GLOB app_sources src/*.cpp src/common/*.cpp src/common/resources/*.cpp src/static_scheduling/*.cpp)
+FILE(GLOB app_sources src/*.cpp src/common/*.cpp src/common/resources/*.cpp src/static_scheduling/*.cpp src/static_scheduling_with_event/*.cpp)
+target_sources(app PRIVATE ${app_sources})
+target_include_directories(app PRIVATE src/)

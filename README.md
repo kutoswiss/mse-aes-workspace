@@ -188,3 +188,147 @@ Reset task: response time is 785553 usecs
 Reset task: response time is 242005 usecs
 Reset task: response time is 650574 usecs
 ```
+
+**Large variation of the response time.**
+In the super-loop, the reset button is not handled when it is pressed: the ISR `on_fall_button1()`
+only records the press time, and the button state is polled by `reset_task()`, which runs twice
+per major cycle, at t = 300 ms and t = 1500 ms. The response time is the time between the press
+and the next execution of `reset_task()`, so it only depends on when the user presses the button
+within the cycle: from a few milliseconds (press just before a Reset task) up to about 1200 ms
+(press just after the Reset task at t = 300 ms, next one at t = 1500 ms). The measured values
+(242 ms to 919 ms) are within these bounds. When the button is held, the same press is detected
+again by the next `reset_task()` about 400 ms later (e.g. 495 ms then 904 ms), so one press causes
+two resets.
+
+**Missed events.**
+`check_reset()` reads the current state of the pin, not the event. If the button is released
+before the next execution of `reset_task()`, the read returns "not pressed" and the reset is lost.
+To be sure to be detected, the button must be pressed longer than the time between two Reset tasks
+(up to 1200 ms).
+
+**Why this is problematic.**
+- The behaviour is not deterministic for the user: the reset is sometimes fast, sometimes slow,
+  sometimes ignored, and a long press can trigger several resets.
+- The response time of an event depends on all other tasks of the schedule. Reducing it requires
+  rebuilding the whole time table, so the approach does not scale.
+- For critical events (emergency stop, alarm), losing or delaying an event is not acceptable.
+- Polling uses CPU time even when nothing happens (U = 1, no idle time).
+
+This is the limitation addressed in Part II, where the button press is handled asynchronously
+(event-driven).
+
+## Phase B – BikeComputer Part II
+
+### Question 1 – CPU usage with the TTCE
+
+With the CPU load measured as an additional TTCE task (once per major cycle):
+
+```
+CPU Load: 63.005%   (first measurement, includes start-up)
+CPU Load: 99.007%
+CPU Load: 99.007%
+CPU Load: 99.006%
+```
+
+The CPU usage is about 99 %. The tasks simulate their computation time with a busy wait
+(`kAllowSleep = false`: `TaskManager::simulate_computation_time()` loops on `get_uptime()` until the
+computation time has elapsed). Since the sum of the computation times over a major cycle is
+1600 ms = M (U = 1), every minor cycle of 400 ms is completely filled by tasks that keep the CPU busy,
+and the idle thread almost never runs. The remaining ~1 % corresponds to the short gaps between the
+end of the tasks of a minor cycle and the next TTCE timer tick. The first value (63 %) is lower because
+the measurement interval includes the start-up phase, when the CPU is partly idle.
+
+### Question 2 – CPU usage with sleep calls
+
+With `kAllowSleep = true` in `static_scheduling_with_event::BikeSystem`:
+
+```
+CPU Load: 72.002%
+CPU Load: 72.002%
+CPU Load: 71.009%
+```
+
+The CPU usage drops from about 99 % to about 72 %. `TaskManager::simulate_computation_time()` now
+puts the calling thread to sleep (`zpp_lib::ThisThread::sleep_for()`) for the remaining computation
+time (minus `kAllowedDelta`) instead of busy-waiting, so the idle thread can run during that time.
+
+The CPU usage does not drop further because the gear and speed tasks still poll the buttons
+during their whole computation time: `GearDevice::get_current_gear()` and
+`PedalDevice::get_current_rotation_time()` loop until the task computation time has elapsed, so
+there is nothing left to sleep when `simulate_computation_time()` is called. This represents
+2 x 100 ms (gear) + 4 x 200 ms (speed) = 1000 ms of busy waiting per major cycle of 1600 ms (62.5 %).
+The remaining ~10 % is the actual work done by the other tasks (display update over SPI, sensor
+reading), the short busy waits that complete each sleep and the CPU load logging task itself.
+
+### Bike system test duration (TTCE)
+
+| Version | Failure on nrf5340dk | `CONFIG_TEST_DURATION_IN_MS` |
+|---|---|---|
+| TTCE + `sleep_for` (buttons still polled) | 22.3 s (Task Reset, call #27) | 20000 |
+| TTCE + event-driven devices (ISR + `std::atomic`) | 50.2 s (Task Speed, call #125) | 45000 |
+
+On qemu_x86 the test is only built (Windows host), 120000 ms is kept.
+
+With `sleep_for` only, the duration before failure is the same as with the Super-Loop. Sleeping
+reduces the CPU load, but each task still lasts C. With U = 1 and the overhead of each task, a minor
+cycle lasts slightly more than 400 ms: when the TTCE timer expires, the work item is still running
+(`k_work_submit` returns 2) and it is executed again right after. The minor cycles are then chained
+without waiting for the timer, and the delay accumulates as in the Super-Loop.
+
+With the event-driven devices, `GearDevice` and `PedalDevice` no longer run a polling loop during
+their computation time, so the overhead of each task is smaller and the delay accumulates more slowly.
+The delay still exceeds `kAllowedDelta` because U = 1, but about twice later.
+
+### Question 3 – CPU usage with the event-driven implementation
+
+```
+CPU Load: 17.002%
+CPU Load: 17.005%
+CPU Load: 20.007%
+CPU Load: 17.003%
+```
+
+The CPU usage drops from about 72 % to about 17 % (20 % every third measurement). The buttons are
+no longer polled: `GearDevice`, `PedalDevice` and `ResetDevice` register callbacks with
+`InterruptIn::add_callback()` (the `RegistrationToken` is kept as a data member). The callbacks run in
+ISR context and update `std::atomic` data members (lock-free on the Cortex-M33), with a
+`store(memory_order_release)` in the ISR and a `load(memory_order_acquire)` in the task. The
+1000 ms of busy waiting per major cycle are removed, and the whole computation time of each task is
+now simulated with `sleep_for`, during which the idle thread runs.
+
+The remaining 17 % is the actual work: display update over SPI, sensor reading and UART logging. The
+20 % peaks come from the position of the measurement window relative to the display tasks.
+
+### Question 4 – Response time of the reset event with interrupts
+
+Measured response times (short presses on BUTTON 1):
+
+```
+Reset task: response time is 585937 usecs
+Reset task: response time is 34698 usecs
+Reset task: response time is 175109 usecs
+Reset task: response time is 595124 usecs
+Reset task: response time is 350098 usecs
+Reset task: response time is 307740 usecs
+Reset task: response time is 389710 usecs
+Reset task: response time is 992951 usecs
+Reset task: response time is 237641 usecs
+Reset task: response time is 708466 usecs
+Reset task: response time is 118560 usecs
+Reset task: response time is 503418 usecs
+```
+
+**No event is missed and each press triggers exactly one reset.** The ISR `on_fall_button1()`
+records the press time and sets an `std::atomic<bool>` flag (`store(true, memory_order_release)`).
+`check_reset()` reads and clears the flag in one atomic operation
+(`exchange(false, memory_order_acq_rel)`). The event is stored until `reset_task()` runs, so even a
+very short press is detected, and holding the button no longer causes a second reset.
+
+**The response time is still variable (35 ms to 993 ms).** The event is only handled when
+`reset_task()` runs, at t = 300 ms and t = 1500 ms in the major cycle, so the response time still
+depends on when the button is pressed within the cycle and is bounded by the gap between two
+executions of the Reset task (up to 1200 ms), as with `static_scheduling::BikeSystem`.
+
+This is an improvement over `static_scheduling::BikeSystem` for reliability (no lost events,
+no double resets), but not for latency: the ISR only stores the event, and its processing is still
+bound to the static schedule. Reducing the response

@@ -40,8 +40,9 @@ zpp_lib::ZephyrResult SensorDevice::initialize() {
   zpp_lib::ZephyrResult res;
 #if !CONFIG_EMUL
   // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
-  _sensor_device = DEVICE_DT_GET(DT_INST(0, bosch_bme280));
-  if (!device_is_ready(_sensor_device)) {
+  _sensor_device      = DEVICE_DT_GET(DT_INST(0, bosch_bme280));
+  const bool is_ready = device_is_ready(_sensor_device);
+  if (!is_ready) {
     res.assign_error(zpp_lib::ZephyrErrorCode::Nodev);
   }
 #endif  // !CONFIG_EMUL
@@ -52,7 +53,11 @@ zpp_lib::ZephyrResult SensorDevice::read_temperature(float& temperature) {
   zpp_lib::ZephyrResult res;
 #if !CONFIG_EMUL
   struct sensor_value temperature_sv = {};
-  if (sensor_sample_fetch(_sensor_device) != 0 || sensor_channel_get(_sensor_device, SENSOR_CHAN_AMBIENT_TEMP, &temperature_sv) != 0) {
+  int ret                            = sensor_sample_fetch(_sensor_device);
+  if (ret == 0) {
+    ret = sensor_channel_get(_sensor_device, SENSOR_CHAN_AMBIENT_TEMP, &temperature_sv);
+  }
+  if (ret != 0) {
     res.assign_error(zpp_lib::ZephyrErrorCode::Io);
     return res;
   }
@@ -69,7 +74,11 @@ zpp_lib::ZephyrResult SensorDevice::read_humidity(float& humidity) {
   zpp_lib::ZephyrResult res;
 #if !CONFIG_EMUL
   struct sensor_value humidity_sv = {};
-  if (sensor_sample_fetch(_sensor_device) != 0 || sensor_channel_get(_sensor_device, SENSOR_CHAN_HUMIDITY, &humidity_sv) != 0) {
+  int ret                         = sensor_sample_fetch(_sensor_device);
+  if (ret == 0) {
+    ret = sensor_channel_get(_sensor_device, SENSOR_CHAN_HUMIDITY, &humidity_sv);
+  }
+  if (ret != 0) {
     res.assign_error(zpp_lib::ZephyrErrorCode::Io);
     return res;
   }

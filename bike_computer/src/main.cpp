@@ -28,20 +28,24 @@
 // bike_computer
 #if CONFIG_BIKE_COMPUTER_STATIC_SCHEDULING
 #include "static_scheduling/bike_system.hpp"
+namespace bike_impl = bike_computer::static_scheduling;
+#elif CONFIG_BIKE_COMPUTER_STATIC_SCHEDULING_WITH_EVENT
+#include "static_scheduling_with_event/bike_system.hpp"
+namespace bike_impl = bike_computer::static_scheduling_with_event;
+#else
+#error "No bike computer scheduling selected. Check Kconfig file."
 #endif  // CONFIG_BIKE_COMPUTER_STATIC_SCHEDULING
 
 ZPP_LOG_MODULE_REGISTER(bike_computer, CONFIG_APP_LOG_LEVEL);
 
 int main() {
-#if CONFIG_BIKE_COMPUTER_STATIC_SCHEDULING
-  bike_computer::static_scheduling::BikeSystem bike_system;
+  bike_impl::BikeSystem bike_system;
 
   auto res = bike_system.start();
   if (!res) {
     ZPP_LOG_ERR("Cannot start bike system: %d", static_cast<int>(res.error()));
     return -1;
   }
-#endif  // CONFIG_BIKE_COMPUTER_STATIC_SCHEDULING
 
   return 0;
 }
