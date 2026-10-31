@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net">
   <diagram name="Page-1" id="QjXpswCJqCHs2JC6qWZZ">
-    <mxGraphModel dx="1158" dy="640" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="621" dy="1128" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -151,12 +151,12 @@
         <mxCell id="knTOYzHDwNMWALdzmxrC-46" edge="1" parent="1" style="endArrow=classic;startArrow=classic;html=1;rounded=0;defaultLabelBackgroundColor=page;" value="">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
             <mxPoint x="80" y="180" as="sourcePoint" />
-            <mxPoint x="160" y="180" as="targetPoint" />
+            <mxPoint x="240" y="180" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="knTOYzHDwNMWALdzmxrC-47" connectable="0" parent="knTOYzHDwNMWALdzmxrC-46" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];inheritText=1;defaultLabelBackgroundColor=page;" value="Minor cycle (200 ms)" vertex="1">
-          <mxGeometry relative="1" x="0.2016" y="-2" as="geometry">
-            <mxPoint x="8" y="-18" as="offset" />
+        <mxCell id="knTOYzHDwNMWALdzmxrC-47" connectable="0" parent="knTOYzHDwNMWALdzmxrC-46" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];inheritText=1;defaultLabelBackgroundColor=page;" value="Minor cycle (400 ms)" vertex="1">
+          <mxGeometry relative="1" x="-0.4" y="-2" as="geometry">
+            <mxPoint x="32" y="-18" as="offset" />
           </mxGeometry>
         </mxCell>
         <mxCell id="knTOYzHDwNMWALdzmxrC-48" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="Speed C=200, T=400" vertex="1">
