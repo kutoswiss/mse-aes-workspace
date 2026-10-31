@@ -27,70 +27,43 @@ The second function, `lookup_c_safe`, also checks the index boundaries, using if
 
 However, the last one, lookup_cpp, calls the `std::array::at` method, which throws an exception when an out-of-bounds element is accessed. A solution would be to wrap the call in a try-catch block but this is generally discouraged on embedded systems. The other solution is to avoid this function altogether and enforce it with `clang-tidy` using the `bugprone-exception-escape check`. Another reason not to use this function is that Zephyr disables C++ exceptions by default.
 
-We intentionnally added a bug on `sanitize` project that tries to access a C-array without boudaries checking. We called the function `lookup_c_super_unsafe`. This is not detected by clang-tidy but it is detected by the sanitizer during the runtime. The following logs show when the sanitizer detects the out_of_bounds error:
+We intentionally added a bug in the `sanitize` application that is not detected by `clang-tidy` but is
+detected at runtime by a sanitizer other than the bounds sanitizer used for the lookup functions.
+The function `scale_c_unsafe()` (lookup function 4) multiplies the sensor value by 2^28. When the
+sensor value reaches 8, the result (2^31) does not fit in an `int32_t`: this is a signed integer overflow,
+which is undefined behavior. The value is only known at runtime, so `clang-tidy` cannot detect it.
+
+The bug is detected with `-fsanitize=signed-integer-overflow`, added to the sanitizer flags in
+`sanitize/CMakeLists.txt`. All sanitizer flags are only enabled when `CONFIG_UBSAN` is set
+(`san` config):
+
+```cmake
+if(CONFIG_UBSAN)
+  zephyr_compile_options(-fsanitize=bounds -fsanitize=bounds-strict -fsanitize=signed-integer-overflow)
+  zephyr_link_libraries(-fsanitize=bounds -fsanitize=bounds-strict -fsanitize=signed-integer-overflow)
+endif()
+```
+
+With `shell+san`, the overflow is reported by the sanitizer:
 
 ```
 uart:~$ inc 4
-
-Using lookup_c_super_unsafe
-
-looking up sensor value: 1 -> 10
-
+Using scale_c_unsafe
+looking up sensor value: 7 -> 1879048192
 uart:~$ inc 4
-
-Using lookup_c_super_unsafe
-
-looking up sensor value: 2 -> 20
-
-uart:~$ inc 4
-
-Using lookup_c_super_unsafe
-
-looking up sensor value: 3 -> 30
-
-uart:~$ inc 4
-
-Using lookup_c_super_unsafe
-
-looking up sensor value: 4 -> 40
-
-uart:~$ inc 4
-
-Using lookup_c_super_unsafe
-
-looking up sensor value: 5 -> 50
-
-uart:~$ inc 4
-
-Using lookup_c_super_unsafe
-
-looking up sensor value: 6 -> 60
-
-uart:~$ inc 4
-
-Using lookup_c_super_unsafe
-
-looking up sensor value: 7 -> 70
-
-uart:~$ inc 4
-
-Using lookup_c_super_unsafe
-
-looking up sensor value: 8 -> 80
-
-uart:~$ inc 4
-
-Using lookup_c_super_unsafe
-
-UBSAN: ERROR out_of_bounds /home/cre/MSE/TSM_AdvEmbSof/Codelabs/workspace/sanitize/src/main.cpp:73 (]
-
+Using scale_c_unsafe
+UBSAN: ERROR mul_overflow .../sanitize/src/main.cpp:62 8(s32) * 268435456(s32)
 abort()
-
-r0/a1:  0x00000004  r1/a2:  0x00011eb1  r2/a3:  0x00000000
-
-r3/a4:  0x00000004 r12/ip:  0x00000001 r14/lr:  0x000058bd
-
-xpsr:  0x21000000
-
-Faulting instruction address (r15/pc): 0x000058cc
 ```
+
+With `shell` (no sanitizer), the overflow is silent and the result is wrong:
+
+```
+uart:~$ inc 4
+Using scale_c_unsafe
+looking up sensor value: 8 -> -2147483648
+```
+
+This behavior differs from `lookup_c_assert()` with `shell+san`: since the debug options are not
+enabled, the assertion is disabled and the out-of-bounds access is reported by the bounds sanitizer
+(`UBSAN: ERROR out_of_bounds`), not by the signed integer overflow sanitizer.

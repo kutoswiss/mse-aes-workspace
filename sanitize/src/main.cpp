@@ -56,9 +56,10 @@ int32_t lookup_c_assert(int32_t sensor_value) {
   return kLut[idx];
 }
 
-static int32_t lookup_c_super_unsafe(int32_t sensor_value) {
-  int32_t idx = sensor_value - kOffset;  // intended normalization
-  return kLut[idx];
+// pure c, the multiplication overflows when sensor_value reaches 8
+static int32_t scale_c_unsafe(int32_t sensor_value) {
+  static constexpr int32_t kScale = 268435456;  // 2^28
+  return sensor_value * kScale;
 }
 
 // pure c, with clamping to valid range
@@ -142,8 +143,8 @@ static int32_t lookup_value(const struct shell* sh, int32_t sensor_value, long l
     return LookUpTable::lookup(sensor_value);
   } break;
   case 4: {
-    shell_print(sh, "Using lookup_c_super_unsafe");
-    return lookup_c_super_unsafe(sensor_value);
+    shell_print(sh, "Using scale_c_unsafe");
+    return scale_c_unsafe(sensor_value);
   } break;
   default: {
     shell_error(sh, "Invalid lookup function: %ld", lookup_function);

@@ -15,6 +15,6 @@ target_sources(
 )
 
 if(CONFIG_UBSAN)
-  zephyr_compile_options(-fsanitize=bounds -fsanitize=bounds-strict)
-  zephyr_link_libraries(-fsanitize=bounds -fsanitize=bounds-strict)
+  zephyr_compile_options(-fsanitize=bounds -fsanitize=bounds-strict -fsanitize=signed-integer-overflow)
+  zephyr_link_libraries(-fsanitize=bounds -fsanitize=bounds-strict -fsanitize=signed-integer-overflow)
 endif()
