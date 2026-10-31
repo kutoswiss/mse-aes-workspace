@@ -10,6 +10,9 @@ This repository contains the complete workspace for the course Advanced Embedded
 
 ## Project Phases
 
+- [Phase A: GitHub Infrastructure, Software Quality and Tests](#phase-a-github-infrastructure-software-quality-and-tests)
+- [Phase B: Bike Computer Part 1 and 2](#phase-b-bike-computer-part-1-and-2)
+
 ### Phase A: GitHub Infrastructure, Software Quality and Tests
 This phase contains the following delivrables:
 - Deliverables/Requirements of the Getting Started codelab.
@@ -95,111 +98,27 @@ xpsr:  0x21000000
 Faulting instruction address (r15/pc): 0x000058cc
 ```
 
-## Phase B – BikeComputer Part I
+### Phase B: Bike Computer Part 1 and 2
+TBD
 
-### Bike Computer Scheduling (Exercise 1)
+### Task scheduler diagram
+![Bike Computer Static Scheduler](assets/images/bike_computer_static_scheduler_no_transparent.png "Bike Computer Static Scheduler")
 
-Task set (values in ms, D = T, Φ = 0):
+### Questions
+#### Question 1: Response time of the reset event
 
-| Task        | T    | C   |
-|-------------|------|-----|
-| Speed       | 400  | 200 |
-| Gear        | 800  | 100 |
-| Reset       | 800  | 100 |
-| Temperature | 1600 | 100 |
-| Display     | 1600 | 300 |
+*There is a large variation in the response time values, from a few milliseconds to hundreds of milliseconds.*
 
-- Major cycle M = lcm(400, 800, 1600) = 1600 ms
-- Minor cycle m = gcd(400, 800, 1600) = 400 ms
-- M is a multiple of m, m <= Ti and m + (m - gcd(Ti, m)) <= Di for all tasks.
-- Display (300 ms) cannot share a minor cycle with Speed (200 ms), so it is split into
-  Display(1) = 200 ms and Display(2) = 100 ms.
-- U = 200/400 + 100/800 + 100/800 + 100/1600 + 300/1600 = 1
+The large variation in response time comes from the cyclic scheduler system. The reset button is not handled when it is pressed, but only when the scheduler runs the reset task, which polls the button during its execution. The response time therefore depends on when the button is pressed relative to the reset task.
 
-Schedule over one major cycle:
+The reset task runs exactly twice per major cycle of 1600 ms:
 
-| Minor cycle | Time (ms)   | Tasks                     | Load (ms) |
-|-------------|-------------|---------------------------|-----------|
-| 1           | 0 - 400     | Gear, Speed, Reset        | 400       |
-| 2           | 400 - 800   | Display(1), Speed         | 400       |
-| 3           | 800 - 1200  | Gear, Speed, Temperature  | 400       |
-| 4           | 1200 - 1600 | Display(2), Speed, Reset  | 400       |
+Worst case: the button is pressed just after the reset task has finished, at about 400 ms. It is only detected at the next execution of the reset task, after Speed → Temperature → Display 1 → Speed → Gear → Reset, at about 1100 ms. The response time is then about 700 ms.
 
-```
-t (ms) 0    100       300  400        600       800  900       1100 1200 1300      1500 1600
-       |Gear| Speed   |Rst | Display(1) |  Speed  |Gear| Speed   |Temp|D(2)| Speed   |Rst |
-       |<------ m1 ------->|<-------- m2 -------->|<------ m3 ------->|<------ m4 ------->|
-```
+Best case: the button is pressed just before or while the reset task is running, for example during the gear task (Gear → Reset) or during the reset task itself. The press is then detected almost immediately, which gives a response time of only a few milliseconds.
 
-Release times and deadlines (each job starts in [k*T, (k+1)*T - C]):
 
-| Task        | Start times (ms)    | Allowed windows                           |
-|-------------|---------------------|-------------------------------------------|
-| Speed       | 100, 600, 900, 1300 | [0,200], [400,600], [800,1000], [1200,1400] |
-| Gear        | 0, 800              | [0,700], [800,1500]                       |
-| Reset       | 300, 1500           | [0,700], [800,1500]                       |
-| Temperature | 1100                | [0,1500]                                  |
-| Display(1)  | 400                 | [0,1400]                                  |
-| Display(2)  | 1200                | [0,1500]                                  |
+*If you do not press long enough on the push button, the event may be missed and no reset happens.*
 
-All constraints are met: the task set is schedulable with M = 1600 ms and m = 400 ms.
+Because of the cyclic scheduler system, if we press the reset button and release it before the reset task gets executed, the reset task might miss the pressed button state. Which is why it is needed to press the button a certain amount of time before it gets handled.
 
-### Bike system test duration
-
-On the nrf5340dk board, `bike_system_part1` fails after about 22.3 s:
-
-```
-Task Reset started too late at call #27 (22303101 vs 22300000 us, allowedDelta 3051 us)
-```
-
-Since U = 1, there is no slack in the schedule: each major cycle lasts slightly more than 1600 ms
-(loop and logging overhead), the delay accumulates and the Reset task, which starts exactly at the
-upper bound of its window (1500 ms in the cycle), is the first one to exceed the allowed delta.
-`CONFIG_TEST_DURATION_IN_MS` is therefore set to 20000 ms for nrf5340dk/nrf5340/cpuapp
-(120000 ms is kept for qemu_x86).
-
-### Question 1 – Response time of the reset event
-
-Measured response times (press and hold BUTTON 1):
-
-```
-Reset task: response time is 495514 usecs
-Reset task: response time is 904083 usecs
-Reset task: response time is 760468 usecs
-Reset task: response time is 510773 usecs
-Reset task: response time is 919342 usecs
-Reset task: response time is 480377 usecs
-Reset task: response time is 888947 usecs
-Reset task: response time is 376983 usecs
-Reset task: response time is 785553 usecs
-Reset task: response time is 242005 usecs
-Reset task: response time is 650574 usecs
-```
-
-**Large variation of the response time.**
-In the super-loop, the reset button is not handled when it is pressed: the ISR `on_fall_button1()`
-only records the press time, and the button state is polled by `reset_task()`, which runs twice
-per major cycle, at t = 300 ms and t = 1500 ms. The response time is the time between the press
-and the next execution of `reset_task()`, so it only depends on when the user presses the button
-within the cycle: from a few milliseconds (press just before a Reset task) up to about 1200 ms
-(press just after the Reset task at t = 300 ms, next one at t = 1500 ms). The measured values
-(242 ms to 919 ms) are within these bounds. When the button is held, the same press is detected
-again by the next `reset_task()` about 400 ms later (e.g. 495 ms then 904 ms), so one press causes
-two resets.
-
-**Missed events.**
-`check_reset()` reads the current state of the pin, not the event. If the button is released
-before the next execution of `reset_task()`, the read returns "not pressed" and the reset is lost.
-To be sure to be detected, the button must be pressed longer than the time between two Reset tasks
-(up to 1200 ms).
-
-**Why this is problematic.**
-- The behaviour is not deterministic for the user: the reset is sometimes fast, sometimes slow,
-  sometimes ignored, and a long press can trigger several resets.
-- The response time of an event depends on all other tasks of the schedule. Reducing it requires
-  rebuilding the whole time table, so the approach does not scale.
-- For critical events (emergency stop, alarm), losing or delaying an event is not acceptable.
-- Polling uses CPU time even when nothing happens (U = 1, no idle time).
-
-This is the limitation addressed in Part II, where the button press is handled asynchronously
-(event-driven).

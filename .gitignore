@@ -50,8 +50,13 @@ justfile.local
 
 # --- deps ---
 /deps/
-.venv/
-.vscode/
+
+# --- device map ---
 my_map.yaml
 
-build_clang/
+# --- clang ---
+/build_clang/
+
+# --- vscode ---
+/.vscode/
+/.vs/

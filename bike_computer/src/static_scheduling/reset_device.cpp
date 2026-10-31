@@ -14,15 +14,21 @@
 
 /****************************************************************************
  * @file reset_device.cpp
- * @author Serge Ayer <serge.ayer@hefr.ch>
+ * @author Christopher Rejas <ianchris.rejas@master.hes-so.ch>
+ * @author Simon Mirkovitch <simon.mirkovitch@master.hes-so.ch>
+ * @author Thierno Mane Mame <mame.mane@master.hes-so.ch>
+ * @author Faycal Atoub <faycal.atoub@master.hes-so.ch>
  *
  * @brief ResetDevice implementation (static scheduling)
  *
- * @date 2025-07-01
+ * @date 2026-10-30
  * @version 1.0.0
  ***************************************************************************/
 
 #include "reset_device.hpp"
+
+// from common
+#include "common/task_manager.hpp"
 
 // zpp_lib
 #include "zpp_include/time.hpp"

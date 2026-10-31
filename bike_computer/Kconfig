@@ -32,3 +32,9 @@ config LOG_TASK_TIMES
   help
     This option must be enabled to log task times with the TaskManager class
     This option must be disabled for test and production
+
+config APP_LOG_LEVEL_DEBUG
+  bool "Log for debugging purposes"
+  default n
+  help
+    This option must be disabled for test and production

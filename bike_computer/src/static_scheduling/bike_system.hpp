@@ -49,7 +49,7 @@ public:
   BikeSystem() = default;
 
   // destructor
-  ~BikeSystem();
+  ~BikeSystem() = default;
 
   /** Explicity prevent (move) copy and assignment
       rather than inheriting from NonCopyable. This avoids

@@ -15,10 +15,14 @@
 /****************************************************************************
  * @file sensor_device.hpp
  * @author Serge Ayer <serge.ayer@hefr.ch>
+ * @author Christopher Rejas <ianchris.rejas@master.hes-so.ch>
+ * @author Simon Mirkovitch <simon.mirkovitch@master.hes-so.ch>
+ * @author Thierno Mane Mame <mame.mane@master.hes-so.ch>
+ * @author Faycal Atoub <faycal.atoub@master.hes-so.ch>
  *
  * @brief SensorDevice header file
  *
- * @date 2025-07-01
+ * @date 2026-10-13
  * @version 1.0.0
  ***************************************************************************/
 

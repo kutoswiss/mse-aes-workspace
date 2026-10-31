@@ -15,6 +15,10 @@
 /****************************************************************************
  * @file bike_system.cpp
  * @author Serge Ayer <serge.ayer@hefr.ch>
+ * @author Christopher Rejas <ianchris.rejas@master.hes-so.ch>
+ * @author Simon Mirkovitch <simon.mirkovitch@master.hes-so.ch>
+ * @author Thierno Mane Mame <mame.mane@master.hes-so.ch>
+ * @author Faycal Atoub <faycal.atoub@master.hes-so.ch>
  *
  * @brief Bike System implementation (static scheduling)
  *
@@ -37,11 +41,12 @@
 #include "zpp_include/zpp_assert.hpp"
 #include "zpp_include/zpp_log.hpp"
 
+// common
+#include "common/ttce.hpp"
+
 ZPP_LOG_MODULE_DECLARE(bike_computer, CONFIG_APP_LOG_LEVEL);
 
 namespace bike_computer::static_scheduling {
-
-BikeSystem::~BikeSystem() = default;
 
 // The complexity is increased by zephyr macros
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -62,33 +67,41 @@ zpp_lib::ZephyrResult BikeSystem::start() {
   _task_manager.initialize_phase();
 
   while (true) {
-#if CONFIG_APP_LOG_LEVEL_DBG
+#if CONFIG_APP_LOG_LEVEL_DEBUG
     auto start_time = zpp_lib::Time::get_uptime();
-#endif  // CONFIG_APP_LOG_LEVEL_DBG
+#endif  // CONFIG_APP_LOG_LEVEL_DEBUG
 
-    // minor cycle 1 (0 - 400 ms)
-    gear_task();
+    // Major Cycle = 1600ms
+    // Minor Cycle = 200ms
+    // Speed:     C=200ms, T=400ms
+    // Gear:      C=100ms, T=800ms
+    // Temp:      C=100ms, T=1600ms
+    // Reset:     C=100ms, T=800ms
+    // Display 1: C=200ms, T=1600ms
+    // Display 2: C=100ms, T=1600ms
+
     speed_distance_task();
+    gear_task();
     reset_task();
-    // minor cycle 2 (400 - 800 ms)
-    display_task1();
+
     speed_distance_task();
-    // minor cycle 3 (800 - 1200 ms)
+    display_task1();
+
+    speed_distance_task();
     gear_task();
+    reset_task();
+
     speed_distance_task();
     temperature_task();
-    // minor cycle 4 (1200 - 1600 ms)
     display_task2();
-    speed_distance_task();
-    reset_task();
 
     // register the time at the end of the cyclic schedule period and print the
     // elapsed time for the period
-#if CONFIG_APP_LOG_LEVEL_DBG
+#if CONFIG_APP_LOG_LEVEL_DEBUG
     std::chrono::microseconds end_time = zpp_lib::Time::get_uptime();
     auto cycle                         = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
     ZPP_LOG_DBG("Repeating cycle time is %" PRIu64 " milliseconds", cycle.count());
-#endif  // CONFIG_APP_LOG_LEVEL_DBG
+#endif  // CONFIG_APP_LOG_LEVEL_DEBUG
 
     if (_stop_flag.load()) {
       break;

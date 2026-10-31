@@ -15,6 +15,10 @@
 /****************************************************************************
  * @file speedometer_device.cpp
  * @author Serge Ayer <serge.ayer@hefr.ch>
+ * @author Christopher Rejas <ianchris.rejas@master.hes-so.ch>
+ * @author Simon Mirkovitch <simon.mirkovitch@master.hes-so.ch>
+ * @author Thierno Mane Mame <mame.mane@master.hes-so.ch>
+ * @author Faycal Atoub <faycal.atoub@master.hes-so.ch>
  *
  * @brief Speedometer implementation
  *
@@ -37,9 +41,6 @@
 ZPP_LOG_MODULE_DECLARE(bike_computer, CONFIG_APP_LOG_LEVEL);
 
 namespace bike_computer {
-
-static constexpr float kMetersPerKilometer  = 1000.0F;
-static constexpr float kMillisecondsPerHour = 3600.0F * 1000.0F;
 
 Speedometer::Speedometer() : _last_time(zpp_lib::Time::get_uptime()) {}
 
@@ -104,10 +105,15 @@ void Speedometer::compute_speed() {
   // Distance run with one pedal turn (wheel circumference = 2.10 m) = 50/15 * 2.1 m
   // = 6.99m If you ride at 80 pedal turns / min, you run a distance of 6.99 * 80 / min
   // ~= 560 m / min = 33.6 km/h
-  const float tray_gear_ratio          = static_cast<float>(kTraySize) / static_cast<float>(_gear_size);
-  const float distance_per_pedal_turn  = tray_gear_ratio * kWheelCircumference;
-  const float pedal_rotations_per_hour = kMillisecondsPerHour / static_cast<float>(_pedal_rotation_time.count());
-  _current_speed                       = (distance_per_pedal_turn * pedal_rotations_per_hour) / kMetersPerKilometer;
+  using namespace std::chrono;
+
+  const float tray_gear_ratio         = static_cast<float>(kTraySize) / static_cast<float>(_gear_size);
+  const float distance_per_pedal_turn = tray_gear_ratio * kWheelCircumference;
+
+  const float pedal_rotation_ms        = duration_cast<duration<float, std::milli>>(_pedal_rotation_time).count();
+  const float pedal_rotations_per_hour = kMillisecondsPerHour / pedal_rotation_ms;
+
+  _current_speed = (distance_per_pedal_turn / kMetersPerKilometer) * pedal_rotations_per_hour;
 }
 
 float Speedometer::compute_traveled_distance() {

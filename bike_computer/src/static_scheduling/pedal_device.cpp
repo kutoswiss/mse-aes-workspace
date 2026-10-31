@@ -14,11 +14,14 @@
 
 /****************************************************************************
  * @file pedal_device.cpp
- * @author Serge Ayer <serge.ayer@hefr.ch>
+ * @author Christopher Rejas <ianchris.rejas@master.hes-so.ch>
+ * @author Simon Mirkovitch <simon.mirkovitch@master.hes-so.ch>
+ * @author Thierno Mane Mame <mame.mane@master.hes-so.ch>
+ * @author Faycal Atoub <faycal.atoub@master.hes-so.ch>
  *
  * @brief PedalDevice implementation (static scheduling)
  *
- * @date 2025-07-01
+ * @date 2026-10-30
  * @version 1.0.0
  ***************************************************************************/
 
@@ -52,6 +55,7 @@ std::chrono::milliseconds PedalDevice::get_current_rotation_time() {
           has_changed = true;
         }
 
+        // increase rotation speed if button 4 is pressed
         if (_button4.read() == zpp_lib::kPolarityPressed) {
           increase_rotation_speed();
           has_changed = true;
@@ -60,6 +64,7 @@ std::chrono::milliseconds PedalDevice::get_current_rotation_time() {
     }
     elapsed_time = zpp_lib::Time::get_uptime() - initial_time;
   }
+
   return _pedal_rotation_time;
 }
 

@@ -95,6 +95,8 @@ private:
   static constexpr std::chrono::microseconds kTaskRunTime = 200000us;
 
   // constants related to speed computation
+  static constexpr float kMillisecondsPerHour    = 1000.0F * 3600.0F;
+  static constexpr float kMetersPerKilometer     = 1000.0F;
   static constexpr float kWheelCircumference     = 2.1F;
   static constexpr uint8_t kTraySize             = 50;
   std::chrono::microseconds _last_time           = std::chrono::microseconds::zero();

@@ -15,19 +15,24 @@
 /****************************************************************************
  * @file sensor_device.cpp
  * @author Serge Ayer <serge.ayer@hefr.ch>
+ * @author Christopher Rejas <ianchris.rejas@master.hes-so.ch>
+ * @author Simon Mirkovitch <simon.mirkovitch@master.hes-so.ch>
+ * @author Thierno Mane Mame <mame.mane@master.hes-so.ch>
+ * @author Faycal Atoub <faycal.atoub@master.hes-so.ch>
  *
- * @brief SensorDevice implementation
+ * @brief SensorDevice source file
  *
- * @date 2025-07-01
+ * @date 2026-10-13
  * @version 1.0.0
  ***************************************************************************/
-
-#include "sensor_device.hpp"
 
 // zephyr
 #if !CONFIG_EMUL
 #include <zephyr/drivers/sensor.h>
 #endif  // !CONFIG_EMUL
+
+// sensor_device
+#include "sensor_device.hpp"
 
 namespace bike_computer {
 

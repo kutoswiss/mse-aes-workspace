@@ -35,13 +35,13 @@ ZPP_LOG_MODULE_REGISTER(bike_computer, CONFIG_APP_LOG_LEVEL);
 int main() {
 #if CONFIG_BIKE_COMPUTER_STATIC_SCHEDULING
   bike_computer::static_scheduling::BikeSystem bike_system;
-#endif  // CONFIG_BIKE_COMPUTER_STATIC_SCHEDULING
 
   auto res = bike_system.start();
   if (!res) {
     ZPP_LOG_ERR("Cannot start bike system: %d", static_cast<int>(res.error()));
     return -1;
   }
+#endif  // CONFIG_BIKE_COMPUTER_STATIC_SCHEDULING
 
   return 0;
 }
