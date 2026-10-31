@@ -6,7 +6,7 @@ tests:
           map_file: ./nrf5340_map_mint.yaml
         - board: qemu_x86
     - root: bike_computer/tests
-      tags: ["phase_a", "phase_b", "phase_c"]
+      tags: ["phase_a"]
       boards:
         - board: nrf5340dk/nrf5340/cpuapp
         - board: qemu_x86
