@@ -13,7 +13,7 @@ This repository contains the complete workspace for the course Advanced Embedded
 - [Phase A: GitHub Infrastructure, Software Quality and Tests](#phase-a-github-infrastructure-software-quality-and-tests)
 - [Phase B: Bike Computer Part 1 and 2](#phase-b-bike-computer-part-1-and-2)
 
-### Phase A: GitHub Infrastructure, Software Quality and Tests
+## Phase A: GitHub Infrastructure, Software Quality and Tests
 This phase contains the following delivrables:
 - Deliverables/Requirements of the Getting Started codelab.
 - Deliverables/Requirements of the Improving Software Quality codelab
@@ -98,7 +98,7 @@ xpsr:  0x21000000
 Faulting instruction address (r15/pc): 0x000058cc
 ```
 
-### Phase B: Bike Computer Part 1 and 2
+## Phase B – BikeComputer Part I
 
 Task set (values in ms, D = T, Φ = 0):
 
@@ -155,7 +155,7 @@ upper bound of its window (1500 ms in the cycle), is the first one to exceed the
 `CONFIG_TEST_DURATION_IN_MS` is therefore set to 20000 ms for nrf5340dk/nrf5340/cpuapp
 (120000 ms is kept for qemu_x86).
 
-### Questions
+
 #### Question 1: Response time of the reset event
 
 *There is a large variation in the response time values, from a few milliseconds to hundreds of milliseconds.*
@@ -188,34 +188,6 @@ Reset task: response time is 785553 usecs
 Reset task: response time is 242005 usecs
 Reset task: response time is 650574 usecs
 ```
-
-**Large variation of the response time.**
-In the super-loop, the reset button is not handled when it is pressed: the ISR `on_fall_button1()`
-only records the press time, and the button state is polled by `reset_task()`, which runs twice
-per major cycle, at t = 300 ms and t = 1500 ms. The response time is the time between the press
-and the next execution of `reset_task()`, so it only depends on when the user presses the button
-within the cycle: from a few milliseconds (press just before a Reset task) up to about 1200 ms
-(press just after the Reset task at t = 300 ms, next one at t = 1500 ms). The measured values
-(242 ms to 919 ms) are within these bounds. When the button is held, the same press is detected
-again by the next `reset_task()` about 400 ms later (e.g. 495 ms then 904 ms), so one press causes
-two resets.
-
-**Missed events.**
-`check_reset()` reads the current state of the pin, not the event. If the button is released
-before the next execution of `reset_task()`, the read returns "not pressed" and the reset is lost.
-To be sure to be detected, the button must be pressed longer than the time between two Reset tasks
-(up to 1200 ms).
-
-**Why this is problematic.**
-- The behaviour is not deterministic for the user: the reset is sometimes fast, sometimes slow,
-  sometimes ignored, and a long press can trigger several resets.
-- The response time of an event depends on all other tasks of the schedule. Reducing it requires
-  rebuilding the whole time table, so the approach does not scale.
-- For critical events (emergency stop, alarm), losing or delaying an event is not acceptable.
-- Polling uses CPU time even when nothing happens (U = 1, no idle time).
-
-This is the limitation addressed in Part II, where the button press is handled asynchronously
-(event-driven).
 
 ## Phase B – BikeComputer Part II
 
