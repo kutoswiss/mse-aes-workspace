@@ -18,6 +18,18 @@ applications:
         - sensor
         - log+debug+sensor
       configs_dir: ../deps/zpp_lib/configs
+    
+    - app: bike_computer
+      boards:
+        - board: nrf5340dk/nrf5340/cpuapp
+          shield: adafruit_2_8_tft_touch_v2
+        - board: qemu_x86
+      configs:
+        - gpio+display+sensor+phase_a
+        - log+debug+gpio+display+sensor+phase_a
+        - gpio+display+sensor+phase_b
+        - log+debug+gpio+display+sensor+phase_b
+      configs_dir: ../deps/zpp_lib/configs
 
     - app: sanitize
       boards:
