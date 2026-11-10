@@ -8,6 +8,14 @@ This repository contains the complete workspace for the course Advanced Embedded
 - Mirkovitch Simon
 - Rejas Christopher
 
+## Project assessment
+
+- Phase A: 18pts / 20pts
+- Phase B:
+- Phase C:
+- Phase D:
+- Total:  / 100 pts
+- 
 ## Project Phases
 
 - [Phase A: GitHub Infrastructure, Software Quality and Tests](#phase-a-github-infrastructure-software-quality-and-tests)
