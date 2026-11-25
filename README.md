@@ -21,6 +21,7 @@ This repository contains the complete workspace for the course Advanced Embedded
 - [Phase A: GitHub Infrastructure, Software Quality and Tests](#phase-a-github-infrastructure-software-quality-and-tests)
 - [Phase B: Bike Computer Part 1](#phase-b--bikecomputer-part-i)
 - [Phase B: Bike Computer Part 2](#phase-b--bikecomputer-part-ii)
+- [Phase C: Multi-tasking under Zephyr OS](#phase-c--multi-tasking-under-zephyr-os)
 
 
 ## Phase A: GitHub Infrastructure, Software Quality and Tests
@@ -287,3 +288,438 @@ executions of the Reset task (up to 1200 ms), as with `static_scheduling::BikeSy
 This is an improvement over `static_scheduling::BikeSystem` for reliability (no lost events,
 no double resets), but not for latency: the ISR only stores the event, and its processing is still
 bound to the static schedule. Reducing the response
+
+## Phase C – Multi-tasking under Zephyr OS
+
+
+### Question 1: Using a `mutex` in an ISR and Deferring Work
+with `CONFIG_WORK_ON_BUTTON_USE_WORK_QUEUE=n`
+
+- We are not able to lock mutexes inside an ISR because of an assertion enabled in debug mode.
+
+- We are able to lock a mutex using button 1 and release it after a certain amount of time within the same thread.
+
+- We are able to lock a mutex when we are processing outside the CS.
+
+- We are not able to lock a mutex and got an error message "Cannot lock mutexes"
+
+- There is a new thread called ProcessingWorkQueue that is responsible of consuming workers in a separate thread. We can see that when we press the button, another thread (ProcessingWorkQueue thread) is trying to lock the mutex, unlike the step 2. 
+
+---
+### Question Multi-tasking under Zephyr OS/2
+
+> *For each scenario, build your application using the command `just build multi_tasking/ log_app+debug+stats+gpio yes prj_multi_tasking.conf`. The different scenarios are created by modifying only the configuration parameters in the `prj_multi_tasking.conf` file. For this test, it is important not to enable logging for the `zpp_lib` library or for the kernel.*
+> 
+> Done. `CONFIG_LOG_MODE_IMMEDIATE` has been disabled.
+> 
+> *Scenario 1 / 2 / 3: The main thread is in a `Waiting` state, waiting for the `WaitOnButton` thread to terminate using the `Thread::join()` method. This is the default behavior with `CONFIG_WAIT_ON_BUTTON_SLEEP=y`. Change the priority of the `WaitOnButton` thread by modifying the `CONFIG_WAIT_ON_BUTTON_THREAD_PRIORITY` value to `8/9/10` (scenario 1 / 2 / 3) in the `prj_multi_tasking.conf` file.*
+
+
+**Scenario 1**
+`CONFIG_WAIT_ON_BUTTON_THREAD_PRIORITY=8`
+`CONFIG_WAIT_ON_BUTTON_SLEEP=y`
+
+```
+Starting WaitOnButton demo
+Waiting for button press
+Thread started successfully
+WaitOnButton demo started
+Calling wait_started()wait_started() unblocked[00:00:00.333,404] <inf> zpp_rtos: === Threads Summary=
+[00:00:00.339,355] <inf> zpp_rtos:  # |      Thread ID | Name         | State     | Prio | Stack (us)
+[00:00:00.349,761] <inf> zpp_rtos: ---+----------------+--------------+-----------+------+-----------
+[00:00:00.360,321] <inf> zpp_rtos:  0 |     0x20000200 | ButtonThread | pending   |    8 |  728 / 208
+[00:00:00.370,178] <inf> zpp_rtos:  1 |     0x20000668 | sysworkq     | pending   |   -1 |  336 / 104
+[00:00:00.380,004] <inf> zpp_rtos:  2 |     0x200003b0 | idle         | ready     |   15 |   48 / 32
+[00:00:00.389,953] <inf> zpp_rtos:  3 |     0x20000478 | main         | queued    |    9 | 2608 / 406
+[00:00:00.399,749] <inf> zpp_rtos: ---+----------------+------------+-----------+------+-------------
+
+Button pressed with response time: 31 usecs
+Waiting for button press
+Button pressed with response time: 61 usecs
+Waiting for button press
+Button pressed with response time: 61 usecs
+Waiting for button press
+Button pressed with response time: 61 usecs
+Waiting for button press
+Button pressed with response time: 61 usecs
+Waiting for button press
+```
+
+**Scenario 2**
+`CONFIG_WAIT_ON_BUTTON_THREAD_PRIORITY=9`
+`CONFIG_WAIT_ON_BUTTON_SLEEP=y`
+
+```
+Starting WaitOnButton demo
+Thread started successfully
+WaitOnButton demo started
+Calling wait_started()Waiting for button press
+wait_started() unblocked[00:00:00.333,282] <inf> zpp_rtos: === Threads Summary ===
+[00:00:00.339,263] <inf> zpp_rtos:  # |      Thread ID | Name         | State     | Prio | Stack (us)
+[00:00:00.349,639] <inf> zpp_rtos: ---+----------------+--------------+-----------+------+-----------
+[00:00:00.360,229] <inf> zpp_rtos:  0 |     0x20000200 | ButtonThread | pending   |    9 |  728 / 208
+[00:00:00.370,086] <inf> zpp_rtos:  1 |     0x20000668 | sysworkq     | pending   |   -1 |  336 / 104
+[00:00:00.379,913] <inf> zpp_rtos:  2 |     0x200003b0 | idle         | ready     |   15 |   48 / 32
+[00:00:00.389,862] <inf> zpp_rtos:  3 |     0x20000478 | main         | queued    |    9 | 2608 / 406
+[00:00:00.399,688] <inf> zpp_rtos: ---+----------------+------------+-----------+------+-------------
+
+Button pressed with response time: 61 usecs
+Waiting for button press
+Button pressed with response time: 30 usecs
+Waiting for button press
+Button pressed with response time: 31 usecs
+Waiting for button press
+Button pressed with response time: 61 usecs
+Waiting for button press
+Button pressed with response time: 31 usecs
+Waiting for button press
+```
+
+**Scenario 3**
+`CONFIG_WAIT_ON_BUTTON_THREAD_PRIORITY=10`
+`CONFIG_WAIT_ON_BUTTON_SLEEP=y`
+
+```
+Starting WaitOnButton demo
+Thread started successfully
+WaitOnButton demo started
+Calling wait_started()Waiting for button press
+wait_started() unblocked[00:00:00.333,465] <inf> zpp_rtos: === Threads Summary ===
+[00:00:00.339,416] <inf> zpp_rtos:  # |      Thread ID | Name         | State     | Prio | Stack (us)
+[00:00:00.349,792] <inf> zpp_rtos: ---+----------------+--------------+-----------+------+-----------
+[00:00:00.360,412] <inf> zpp_rtos:  0 |     0x20000200 | ButtonThread | queued    |   10 |  728 / 208
+[00:00:00.370,269] <inf> zpp_rtos:  1 |     0x20000668 | sysworkq     | pending   |   -1 |  336 / 104
+[00:00:00.380,096] <inf> zpp_rtos:  2 |     0x200003b0 | idle         | ready     |   15 |   48 / 32
+[00:00:00.390,045] <inf> zpp_rtos:  3 |     0x20000478 | main         | queued    |    9 | 2608 / 406
+[00:00:00.399,871] <inf> zpp_rtos: ---+----------------+------------+-----------+------+-------------
+
+Button pressed with response time: 61 usecs
+Waiting for button press
+Button pressed with response time: 30 usecs
+Waiting for button press
+Button pressed with response time: 30 usecs
+Waiting for button press
+Button pressed with response time: 31 usecs
+Waiting for button press
+Button pressed with response time: 30 usecs
+Waiting for button press
+```
+
+**Scenario 4**
+`CONFIG_WAIT_ON_BUTTON_THREAD_PRIORITY=9`
+`CONFIG_WAIT_ON_BUTTON_SLEEP=n`
+
+```
+Starting WaitOnButton demo
+Thread started successfully
+WaitOnButton demo started
+Calling wait_started()Waiting for button press
+wait_started() unblocked[00:00:00.333,374] <inf> zpp_rtos: === Threads Summary ===
+[00:00:00.339,324] <inf> zpp_rtos:  # |      Thread ID | Name         | State     | Prio | Stack (us)
+[00:00:00.349,731] <inf> zpp_rtos: ---+----------------+--------------+-----------+------+-----------
+[00:00:00.360,321] <inf> zpp_rtos:  0 |     0x20000200 | ButtonThread | pending   |    9 |  728 / 208
+[00:00:00.370,208] <inf> zpp_rtos:  1 |     0x20000668 | sysworkq     | pending   |   -1 |  336 / 104
+[00:00:00.380,004] <inf> zpp_rtos:  2 |     0x200003b0 | idle         | ready     |   15 |   48 / 32
+[00:00:00.389,984] <inf> zpp_rtos:  3 |     0x20000478 | main         | queued    |    9 | 2608 / 406
+[00:00:00.399,780] <inf> zpp_rtos: ---+----------------+------------+-----------+------+-------------
+
+Button pressed with response time: 2594 usecs
+Waiting for button press
+Button pressed with response time: 18371 usecs
+Waiting for button press
+Button pressed with response time: 8576 usecs
+Waiting for button press
+Button pressed with response time: 18829 usecs
+Waiting for button press
+Button pressed with response time: 9765 usecs
+Waiting for button press
+```
+
+
+**Scenario 5**
+`CONFIG_WAIT_ON_BUTTON_THREAD_PRIORITY=8`
+`CONFIG_WAIT_ON_BUTTON_SLEEP=n`
+
+```
+Starting WaitOnButton demo
+Waiting for button press
+Thread started successfully
+WaitOnButton demo started
+Calling wait_started()wait_started() unblocked[00:00:00.333,618] <inf> zpp_rtos: === Threads Summary=
+[00:00:00.339,569] <inf> zpp_rtos:  # |      Thread ID | Name         | State     | Prio | Stack (us)
+[00:00:00.349,975] <inf> zpp_rtos: ---+----------------+--------------+-----------+------+-----------
+[00:00:00.360,565] <inf> zpp_rtos:  0 |     0x20000200 | ButtonThread | pending   |    8 |  728 / 208
+[00:00:00.370,422] <inf> zpp_rtos:  1 |     0x20000668 | sysworkq     | pending   |   -1 |  336 / 104
+[00:00:00.380,249] <inf> zpp_rtos:  2 |     0x200003b0 | idle         | ready     |   15 |   48 / 32
+[00:00:00.390,197] <inf> zpp_rtos:  3 |     0x20000478 | main         | queued    |    9 | 2608 / 406
+[00:00:00.400,024] <inf> zpp_rtos: ---+----------------+------------+-----------+------+-------------
+
+Button pressed with response time: 61 usecs
+Waiting for button press
+Button pressed with response time: 61 usecs
+Waiting for button press
+Button pressed with response time: 61 usecs
+Waiting for button press
+Button pressed with response time: 61 usecs
+Waiting for button press
+Button pressed with response time: 61 usecs
+Waiting for button press
+```
+Faster reaction time after pressing the button because we set a higher priority on the configuration file.
+
+**Scenario 6**
+`CONFIG_WAIT_ON_BUTTON_THREAD_PRIORITY=10`
+`CONFIG_WAIT_ON_BUTTON_SLEEP=n`
+
+```
+Starting WaitOnButton demo
+Thread started successfully
+WaitOnButton demo started
+Calling wait_started()Waiting for button press
+wait_started() unblocked[00:00:00.334,136] <inf> zpp_rtos: === Threads Summary ===
+[00:00:00.340,087] <inf> zpp_rtos:  # |      Thread ID | Name         | State     | Prio | Stack (us)
+[00:00:00.350,463] <inf> zpp_rtos: ---+----------------+--------------+-----------+------+-----------
+[00:00:00.361,053] <inf> zpp_rtos:  0 |     0x20000200 | ButtonThread | queued    |   10 |  728 / 208
+[00:00:00.370,910] <inf> zpp_rtos:  1 |     0x20000668 | sysworkq     | pending   |   -1 |  336 / 104
+[00:00:00.380,737] <inf> zpp_rtos:  2 |     0x200003b0 | idle         | ready     |   15 |   48 / 32
+[00:00:00.390,686] <inf> zpp_rtos:  3 |     0x20000478 | main         | queued    |    9 | 2608 / 406
+[00:00:00.400,482] <inf> zpp_rtos: ---+----------------+------------+-----------+------+-------------
+```
+ Nothing  happens when we pressed on the button.
+
+---
+### Question Multi-tasking under Zephyr OS/3
+
+> *The use of any `Mutex` object is not allowed in an ISR context. This is because locking a mutex can cause blocking, and any blocking code is not permitted in an ISR context.*
+> 
+> *You must modify the ticker callback so that the `Mutex` object is accessed from the ISR context. Demonstrate how to modify the callback and show the errors produced in the Zephyr RTOS kernel code.*
+
+Modification done on `update_from_ticker()`
+```C++
+// update_from_ticker is used as a callback function for the ticker
+// NOLINTNEXTLINE(readability-make-member-function-const)
+void Clock::update_from_ticker() {
+#if CONFIG_CURRENT_TIME_MUTEX
+	auto m = _mutex.lock();
+	ZPP_ASSERT(m, "Cannot lock mutex: %d", static_cast<int>(res.error()));
+#endif // CONFIG_CURRENT_TIME_MUTEX
+
+// this method runs in ISR mode -> we cannot allocate memory or perform other
+// forbidden operation
+	auto res = _update_queue.call(_update_work);
+	ZPP_ASSERT(res, "Cannot call update on queue: %d", static_cast<int>(res.error()));
+
+#if CONFIG_CURRENT_TIME_MUTEX
+	m = _mutex.unlock();
+	ZPP_ASSERT(m, "Cannot unlock mutex: %d", static_cast<int>(res.error()));
+#endif // CONFIG_CURRENT_TIME_MUTEX
+}
+```
+
+Error produced during runtime
+```shell
+ASSERTION FAIL [!arch_is_in_isr()] @ WEST_TOPDIR/deps/zephyr/kernel/mutex.c:115
+        mutexes cannot be used inside ISRs
+[00:00:01.265,930] <err> os: r0/a1:  0x00000004  r1/a2:  0x00000073  r2/a3:  0x00000000
+[00:00:01.274,658] <err> os: r3/a4:  0x00000004 r12/ip:  0x00000000 r14/lr:  0x00009cb1
+[00:00:01.283,386] <err> os:  xpsr:  0x01000025
+[00:00:01.288,635] <err> os: Faulting instruction address (r15/pc): 0x000276ce
+[00:00:01.296,569] <err> os: >>> ZEPHYR FATAL ERROR 4: Kernel panic on CPU 0
+[00:00:01.304,351] <err> os: Fault during interrupt handling
+
+[00:00:01.310,821] <err> os: Current thread: 0x200003b0 (idle)
+[00:00:01.317,352] <err> os: Halting system
+```
+
+---
+### Question Multi-tasking under Zephyr OS/4
+
+> *The code to use all classes and simulate a producer/consumer scenario is given in the `main` program.*
+> 
+> *To gain an in-depth understanding of the program, make sure that the configuration parameter `CONFIG_BUFFER_USE_MUTEX_AND_SEMAPHORE` is set to `n` and proceed as follows:*
+> 
+> - *Scenario 1: Start the program with the producer running only (comment the call to `consumer.start()` in the `main` function). Make sure to run the program, describe what you observe and give an explanation of your observations. In particular, answer the following questions:*
+>     1. *Which led is blinking?*
+>     2. *How is the `_producer_index` value of the `Buffer` class changing?*
+>     3. *Can the producer overwrite values that have not be consumed?*
+> 
+> - *Scenario 2: Do the opposite and start the program with the consumer running only. Answer the same corresponding questions.*
+>     
+> - *Scenario 3 / 4: Then, start the program with both the producer and consumer running. Answer the same questions again. Experiment with different time values, simulating both cases where production is faster than consumption (Scenario 3) and where consumption is faster than production (Scenario 4). This can be accomplished by making `kApppendWaitTime` or `kExtractWaitTime` much smaller than the other waiting time.*
+> 
+> *Answer all questions for each different scenario above.*
+
+####  Scenario 1
+
+1. `LED1` is blinking
+2. Rotating like a circular buffer. After it goes to 9, it goes back to 0, erasing the previous value that was on that index. This is because the size of the buffer is limited by the constant value `kBufferSize`.
+3. Yes because of the mecanism explained on b.
+
+```
+Performing processing in CS, thread (0x200002c8)
+Multi-tasking program started
+Starting Consumer/Producer demo
+Producer data is (2, 2) (index in buffer 0)
+Producer data is (1, 1) (index in buffer 1)
+Producer data is (1, 1) (index in buffer 2)
+Producer data is (1, 1) (index in buffer 3)
+Producer data is (1, 1) (index in buffer 4)
+Producer data is (1, 1) (index in buffer 5)
+Producer data is (2, 2) (index in buffer 6)
+Producer data is (2, 2) (index in buffer 7)
+Producer data is (5, 5) (index in buffer 8)
+Producer data is (3, 3) (index in buffer 9)
+Producer data is (5, 5) (index in buffer 0) <-- Back to index 0
+Producer data is (1, 1) (index in buffer 1)
+Producer data is (4, 4) (index in buffer 2)
+Producer data is (4, 4) (index in buffer 3)
+```
+
+#### Scenario 2
+
+1. `LED2` is blinking
+2. Same as the producer, `_consumer_index` gets incremented until it reaches `kBufferSize` before going back to 0.
+3. Consumer does not override the values since it reads it only from the buffer.
+
+```
+Multi-tasking program started
+Starting Consumer/Producer demo
+Consumer data is (0, 0) (index in buffer 0)
+Consumer data is (0, 0) (index in buffer 1)
+Consumer data is (0, 0) (index in buffer 2)
+Consumer data is (0, 0) (index in buffer 3)
+Consumer data is (0, 0) (index in buffer 4)
+Consumer data is (0, 0) (index in buffer 5)
+Consumer data is (0, 0) (index in buffer 6)
+Consumer data is (0, 0) (index in buffer 7)
+Consumer data is (0, 0) (index in buffer 8)
+Consumer data is (0, 0) (index in buffer 9)
+Consumer data is (0, 0) (index in buffer 0) <-- Back to index 0
+Consumer data is (0, 0) (index in buffer 1)
+Consumer data is (0, 0) (index in buffer 2)
+Consumer data is (0, 0) (index in buffer 3)
+```
+
+#### Scenario 3
+
+**Producer and consumer wait times**
+```c++
+static constexpr std::chrono::milliseconds kApppendWaitTime = 100ms;
+static constexpr std::chrono::milliseconds kExtractWaitTime = 200ms;
+```
+
+**Output**
+```
+Multi-tasking program started
+Starting Consumer/Producer demo
+Producer data is (1, 1) (index in buffer 0) <-- [1]
+Producer data is (4, 4) (index in buffer 1) <-- [1, 4]
+Consumer data is (1, 1) (index in buffer 0) <-- pop 1
+Producer data is (5, 5) (index in buffer 2) <-- [4, 5]
+Producer data is (1, 1) (index in buffer 3) <-- [4, 5, 1]
+Consumer data is (4, 4) (index in buffer 1) <-- pop 4
+Producer data is (1, 1) (index in buffer 4) <-- [5, 1, 1]
+Producer data is (4, 4) (index in buffer 5) <-- [5, 1, 1, 4]
+Consumer data is (5, 5) (index in buffer 2) <-- pop 5
+Producer data is (2, 2) (index in buffer 6) <-- [1, 1, 4]
+Consumer data is (1, 1) (index in buffer 3) <-- pop 1
+Producer data is (4, 4) (index in buffer 7) <-- [1, 4]
+Producer data is (1, 1) (index in buffer 8) <-- [1, 4, 1]
+Producer data is (3, 3) (index in buffer 9) <-- [1, 4, 1, 3]
+Consumer data is (1, 1) (index in buffer 4) <-- pop 1
+Producer data is (2, 2) (index in buffer 0) <-- [4, 1, 3]
+Consumer data is (4, 4) (index in buffer 5) <-- pop 4
+```
+
+**Observations**
+This scenario looks correct from the output point of view. Consumer always pop the value to the according index added by the producer to the buffer. 
+
+But in reality, this works only because the consumer waiting time is longer that the producer one. Plus of that, at some point, the producer will start erasing values that has not been read yet by the consumer.
+
+#### Scenario 4
+
+**Producer and consumer wait times**
+```c++
+static constexpr std::chrono::milliseconds kApppendWaitTime = 400ms;
+static constexpr std::chrono::milliseconds kExtractWaitTime = 100ms;
+```
+
+**Output**
+```
+Multi-tasking program started
+Starting Consumer/Producer demo
+Consumer data is (1, 1) (index in buffer 0)
+Consumer data is (0, 0) (index in buffer 1)
+Consumer data is (0, 0) (index in buffer 2)
+Consumer data is (0, 0) (index in buffer 3)
+Producer data is (1, 1) (index in buffer 0)
+Consumer data is (0, 0) (index in buffer 4)
+Consumer data is (0, 0) (index in buffer 5)
+Consumer data is (0, 0) (index in buffer 6)
+Consumer data is (0, 0) (index in buffer 7)
+Producer data is (2, 2) (index in buffer 1)
+Consumer data is (0, 0) (index in buffer 8)
+Consumer data is (0, 0) (index in buffer 9)
+Consumer data is (1, 1) (index in buffer 0)
+Consumer data is (2, 2) (index in buffer 1)
+Producer data is (4, 4) (index in buffer 2)
+Consumer data is (4, 4) (index in buffer 2)
+```
+
+**Observations**
+It looks like it does not work as a producer/consumer because the consumer never waits for the data from the producer. It fetch the data right after it's waiting time is reached. From that conclusion, a synchronization mechanism is needed.
+
+
+Multi-tasking program started
+Starting Consumer/Producer demo
+Producer data is (1, 1) (index in buffer 0) 1
+Consumer data is (1, 1) (index in buffer 0) 1
+
+Producer data is (5, 5) (index in buffer 1) 1 5
+Producer data is (1, 1) (index in buffer 2) 1 5 1
+Consumer data is (5, 5) (index in buffer 1) 5
+
+Producer data is (4, 4) (index in buffer 3) 1 5 1 4
+Consumer data is (1, 1) (index in buffer 2) 1
+
+Producer data is (3, 3) (index in buffer 4) 1 5 1 4 3
+Consumer data is (4, 4) (index in buffer 3) 4
+
+Producer data is (5, 5) (index in buffer 5) 1 5 1 4 3 5
+Consumer data is (3, 3) (index in buffer 4) 3
+
+Producer data is (3, 3) (index in buffer 6) 1 5 1 4 3 5 6
+Consumer data is (5, 5) (index in buffer 5) 5
+
+
+---
+### Question Multi-tasking under Zephyr OS/5
+
+> *Assuming that the `Mutex` and `Semaphore` mechanisms are fully and correctly implemented, describe what happens if you remove the calls below in the `Buffer` class:*
+> 
+> *- `_in_semaphore.acquire()`*
+> *- `_in_semaphore.release()`*
+> *- `_out_semaphore.acquire()`*
+> *- `_out_semaphore.release()`*
+
+
+`_in_semaphore.acquire()`
+The producer stops checking for a free slot. When it gets 9 items ahead of the consumer, it will override the data that hasn't been read yet by the consumer.
+
+`_in_semaphore.release()`
+Slots are never released back to the producer. After 9 items it blocks forever, the consumer empties the buffer and blocks too. This will lead to a deadlock.
+
+`_out_semaphore.acquire()`
+The consumer will not wait for data added by the producer. So it will consume data that might have been already read.
+
+`_out_semaphore.release()`
+The consumer is never tells the producer that there is an available slot. The producer will fill 9 slots and then block. This will lead to a deadlock.
+
+### Question Multi-tasking under Zephyr OS/6
+
+We used the file `buffer_mqueue.hpp` with some modification to be API compatible with the original `Buffer` class.
+
+- We added the template to the class
+- We modified the timeout value to 1h instead of `max()`. After some investigation it seems that it could lead to some issue to use the maximum timeout value due to some calculations overflow.
+
+---
